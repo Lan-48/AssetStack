@@ -1,0 +1,1 @@
+"use strict";const e=require("../../../common/vendor.js");Math||o();const o=()=>"../../../components/layout/layout.js",t=e.defineComponent({__name:"wardrobe-list-page",setup:e=>(e,o)=>({})}),s=e._export_sfc(t,[["__scopeId","data-v-8c3927db"]]);wx.createPage(s);

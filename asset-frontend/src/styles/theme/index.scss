@@ -1,0 +1,135 @@
+// ==============================
+// 🚪 主题系统统一入口
+// 加载基础变量 + 所有主题色 + 生成 CSS 变量
+// ==============================
+
+@use './base/base.scss' as *;
+@use './themes/default.scss' as *;
+@use './themes/dark.scss' as dark;
+
+// ------------------------------
+// 3. 生成全局 CSS 变量（供业务组件使用）
+// ------------------------------
+:root {
+  // 功能色
+  --primary: #{$primary};
+  --success: #{$success};
+  --caution: #{$caution};
+  --warning: #{$warning};
+  --danger: #{$danger};
+  --purple: #{$purple};
+  --info: #{$info};
+
+  // 文字色
+  --text-primary: #{$text-primary};
+  --text-secondary: #{$text-secondary};
+  --text-tertiary: #{$text-tertiary};
+  --text-quaternary: #{$text-quaternary};
+
+  // 背景色
+  --bg-primary: #{$bg-primary};
+  --bg-secondary: #{$bg-secondary};
+  --bg-tertiary: #{$bg-tertiary};
+
+  // 边框
+  --border: #{$border};
+  --border-subtle: #{$border-subtle};
+
+  // 蒙层（浅色：黑通道）
+  --overlay-80: #{$overlay-80};
+  --overlay-50: #{$overlay-50};
+  --overlay-40: #{$overlay-40};
+  --overlay-20: #{$overlay-20};
+  --overlay-10: #{$overlay-10};
+  --overlay-05: #{$overlay-05};
+
+  --opacity-disabled: #{$opacity-disabled};
+  --opacity-inactive: #{$opacity-inactive};
+
+  // Apple 三级阴影（浅色）
+  --shadow-elev-1: #{$shadow-elev-1};
+  --shadow-elev-2: #{$shadow-elev-2};
+  --shadow-elev-3: #{$shadow-elev-3};
+}
+
+// ------------------------------
+// 4. 暗黑主题（通过 .theme-dark 类切换）
+// ------------------------------
+.theme-dark {
+  @include dark.theme-dark-css-variables;
+}
+
+// ------------------------------
+// 5. 全局基础样式（依赖 CSS 变量）
+// ------------------------------
+
+body {
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    'SF Pro Text',
+    'SF Pro Display',
+    sans-serif;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: $font-base;
+  line-height: 1.47; // 苹果官方行高
+  -webkit-font-smoothing: antialiased; // 字体抗锯齿
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease; // 主题切换过渡
+}
+
+// 按钮基础样式（苹果风格）
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx 32rpx;
+  border-radius: $radius-md;
+  font-size: $font-md;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: #fff;
+}
+
+.btn-success {
+  background-color: var(--success);
+  color: #fff;
+}
+
+.btn-warning {
+  background-color: var(--warning);
+  color: #fff;
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  color: #fff;
+}
+
+// 卡片样式（苹果风格；可用 var(--shadow-elev-2) 贴近 HIG 二级阴影）
+.card {
+  background-color: var(--bg-primary);
+  border-radius: $radius-lg;
+  padding: $spacing-base;
+  box-shadow: var(--shadow-elev-2, #{$shadow-sm});
+}
+
+// 文本样式
+.title {
+  font-size: $font-lg;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.desc {
+  font-size: $font-base;
+  color: var(--text-tertiary);
+}

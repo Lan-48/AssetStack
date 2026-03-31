@@ -1,0 +1,45 @@
+{
+  "pages": [
+    {
+      "path": "pages/asset/list/asset-list-page",
+      "style": {
+        "disableScroll": true,
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/asset/detail/asset-detail-page",
+      "style": {
+        "navigationStyle": "default",
+        "navigationBarTitleText": "资产详情",
+        "navigationBarTextStyle": "black",
+        "navigationBarBackgroundColor": "#ffffff"
+      }
+    },
+    {
+      "path": "pages/wardrobe/list/wardrobe-list-page",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/setting/setting-page",
+      "style": {
+        "navigationStyle": "default",
+        "navigationBarTitleText": "设置",
+        "navigationBarTextStyle": "black",
+        "navigationBarBackgroundColor": "#ffffff"
+      }
+    }
+  ],
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue"
+    }
+  },
+  "globalStyle": {
+    "navigationStyle": "default",
+    "backgroundColor": "#F2F2F7"
+  }
+}

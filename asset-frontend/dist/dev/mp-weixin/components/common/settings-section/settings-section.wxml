@@ -1,0 +1,1 @@
+<view class="settings-section data-v-615d8798"><text wx:if="{{a}}" class="settings-section__title data-v-615d8798">{{b}}</text><view class="settings-section__card data-v-615d8798"><slot/></view></view>

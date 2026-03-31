@@ -1,0 +1,88 @@
+// ==============================
+// 🎯 基础样式变量（所有主题共享，永不修改）
+// 遵循苹果 iOS/macOS 设计规范
+// ==============================
+
+// ------------------------------
+// 圆角（苹果官方标准）
+// ------------------------------
+$radius-xs: 16rpx;    // 小元素：标签、小按钮
+$radius-sm: 24rpx;   // 中等元素：输入框、小卡片
+$radius-md: 40rpx;   // 常用：按钮、列表项
+$radius-lg: 48rpx;   // 大元素：卡片、弹窗
+$radius-tabbar: 106rpx;   // 底部导航栏
+$radius-full: 9999rpx;// 圆形/胶囊形
+
+// ------------------------------
+// 字体大小（苹果动态类型层级，rpx 适配移动端）
+// ------------------------------
+$font-xs: 24rpx;     // 极小：辅助文字、备注
+$font-sm: 26rpx;     // 小：次要信息、提示
+$font-base: 30rpx;   // 正文：默认文本
+$font-md: 34rpx;     // 中等：按钮、导航
+$font-lg: 40rpx;     // 标题：页面标题
+$font-xl: 48rpx;     // 大标题：模块标题
+$font-2xl: 56rpx;    // 超大标题：顶部大标题
+$font-3xl: 68rpx;    // 特大标题：启动页/核心标题
+
+// ------------------------------
+// 间距（苹果 8px 栅格系统，rpx 单位）
+// ------------------------------
+$spacing-xs: 8rpx;   // 极小：图标与文字间距
+$spacing-sm: 16rpx;  // 小：元素内边距
+$spacing-md: 24rpx;  // 中等：模块间距
+$spacing-base: 32rpx;// 基础：卡片内边距
+$spacing-lg: 40rpx;  // 大：页面模块间距
+$spacing-xl: 48rpx;  // 超大：页面级间距
+
+// ------------------------------
+// 不透明度刻度（0–1）：工程内 rgba 第四维、阴影 alpha、与 opacity 属性统一来源
+// rgba(0,0,0,a) 蒙层见 $overlay-*；整元素透明用 $opacity-*
+// ------------------------------
+$alpha-80: 0.8;
+$alpha-60: 0.6;
+$alpha-50: 0.5;
+$alpha-48: 0.48;
+$alpha-40: 0.4;
+$alpha-30: 0.3;
+$alpha-20: 0.2;
+$alpha-16: 0.16;
+$alpha-15: 0.15;
+$alpha-12: 0.12;
+$alpha-10: 0.1;
+$alpha-08: 0.08;
+$alpha-05: 0.05;
+
+/** 用于 CSS opacity 属性（非 rgba） */
+$opacity-disabled: 0.3;
+$opacity-inactive: 0.6;
+
+/** 固定 RGB + 上列 alpha 的语义填充（上传占位、表单选中等） */
+$fill-placeholder-neutral: rgba(217, 217, 217, $alpha-48);
+$fill-tag-active-soft: rgba(139, 214, 252, $alpha-48);
+
+// ------------------------------
+// 阴影（苹果轻量化风格，柔和不厚重）
+// ------------------------------
+$shadow-sm: 0 2rpx 6rpx rgba(0, 0, 0, $alpha-10);
+$shadow-md: 0 4rpx 20rpx rgba(0, 0, 0, $alpha-10);
+$shadow-lg: 0 8rpx 40rpx rgba(0, 0, 0, $alpha-15);
+
+// Apple HIG 三级阴影（浅色模式，低偏移 + 柔高斯；单位 px 与官方文档一致）
+$shadow-elev-1: 0 1px 2px rgba(0, 0, 0, $alpha-08);
+$shadow-elev-2: 0 2px 8px rgba(0, 0, 0, $alpha-12);
+$shadow-elev-3: 0 4px 16px rgba(0, 0, 0, $alpha-16);
+
+// 组件局部阴影（与 $alpha-10 一致）
+$shadow-dropdown-panel: 0 2px 12px 0 rgba(0, 0, 0, $alpha-10);
+$shadow-tab-bar: 0 2px 10px rgba(0, 0, 0, $alpha-10);
+
+// ------------------------------
+// 蒙层（浅色：黑通道；深色见 themes/dark.scss 同名变量覆写为白通道）
+// ------------------------------
+$overlay-80: rgba(0, 0, 0, $alpha-80);
+$overlay-50: rgba(0, 0, 0, $alpha-50);
+$overlay-40: rgba(0, 0, 0, $alpha-40);
+$overlay-20: rgba(0, 0, 0, $alpha-20);
+$overlay-10: rgba(0, 0, 0, $alpha-10);
+$overlay-05: rgba(0, 0, 0, $alpha-05);

@@ -1,0 +1,10 @@
+{
+  "navigationStyle": "default",
+  "navigationBarTitleText": "设置",
+  "navigationBarTextStyle": "black",
+  "navigationBarBackgroundColor": "#ffffff",
+  "usingComponents": {
+    "settings-cell": "../../components/common/settings-cell/settings-cell",
+    "settings-section": "../../components/common/settings-section/settings-section"
+  }
+}

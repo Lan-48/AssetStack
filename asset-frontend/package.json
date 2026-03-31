@@ -1,0 +1,37 @@
+{
+  "name": "asset_stack",
+  "version": "1.0.0",
+  "description": "资产管理系统",
+  "license": "ISC",
+  "author": "Lan",
+  "type": "module",
+  "scripts": {
+    "devwx": "UNI_INPUT_DIR=./src uni -p mp-weixin",
+    "devpc": "UNI_INPUT_DIR=./src uni -p h5",
+    "buildwx": "UNI_INPUT_DIR=./src uni build -p mp-weixin",
+    "buildpc": "UNI_INPUT_DIR=./src uni build -p h5",
+    "lint": "eslint . --ext .vue,.ts --fix",
+    "lint:check": "eslint . --ext .vue,.ts"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "^3.0.0-4030620241128001",
+    "@dcloudio/uni-h5": "^3.0.0-4030620241128001",
+    "@dcloudio/uni-mp-weixin": "^3.0.0-4030620241128001",
+    "@dcloudio/uni-ui": "^1.5.11",
+    "axios": "^1.13.2",
+    "vue": "^3.4.0"
+  },
+  "devDependencies": {
+    "@dcloudio/uni-components": "^3.0.0-4030620241128001",
+    "@dcloudio/vite-plugin-uni": "3.0.0-4030620241128001",
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
+    "@typescript-eslint/parser": "^8.57.2",
+    "eslint": "^10.1.0",
+    "eslint-plugin-vue": "^10.8.0",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
+    "sass-embedded": "^1.98.0",
+    "vite": "^5.0.0"
+  }
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"theme-demo.js","sources":["pages/demo-page/theme-demo.vue?type=page"],"sourcesContent":["import MiniProgramPage from '/Users/starlight/Desktop/AssetStack/asset-frontend/pages/demo-page/theme-demo.vue'\nwx.createPage(MiniProgramPage)"],"names":[],"mappings":";;;;;;;;;;;;;;;AACA,GAAG,WAAW,eAAe;"}

@@ -1,0 +1,77 @@
+// ==============================
+// 🌙 暗黑主题（苹果官方深色模式）
+// 对齐 HIG：系统背景 / 分割色 / 蒙层（白通道）
+// ==============================
+@use '../base/base.scss' as *;
+
+// 功能色（暗黑模式下系统微调亮度）
+$primary: #0a84ff; // 系统蓝
+$success: #30d158; // 系统绿
+$caution: #ffd60a; // 警告黄（深色常用系统黄）
+$warning: #ff9f0a; // 次要/橙色（深色下辨识度）
+$danger: #ff453a; // 系统红
+$purple: #bf5af2; // 辅助紫（深色常见调整）
+$info: #64d2ff; // 信息浅蓝
+
+// 文字色（暗黑模式下反色层级）
+$text-primary: #ffffff; // 主文本
+$text-secondary: #ebebf5; // 次文本
+$text-tertiary: #8e8e93; // 弱文本
+$text-quaternary: #68686c; // 极弱文本
+
+// 背景色（HIG 深色：一级 / 二级 / 三级）
+$bg-primary: #1c1c1e; // 系统主背景
+$bg-secondary: #2c2c2e; // 二级系统背景：页面/分组
+$bg-tertiary: #3a3a3c; // 三级：子模块、小卡片
+
+// 边框 / 分割线
+$border: #38383a; // 常规分割
+$border-subtle: #424245; // 细弱分割
+
+// 深色蒙层 / 阴影（白通道，alpha 与 base 刻度一致）
+$overlay-80: rgba(255, 255, 255, $alpha-80);
+$overlay-50: rgba(255, 255, 255, $alpha-50);
+$overlay-40: rgba(255, 255, 255, $alpha-40);
+$overlay-20: rgba(255, 255, 255, $alpha-20);
+$overlay-10: rgba(255, 255, 255, $alpha-10);
+$overlay-05: rgba(255, 255, 255, $alpha-05);
+
+$shadow-elev-1: 0 1px 2px rgba(255, 255, 255, $alpha-08);
+$shadow-elev-2: 0 2px 8px rgba(255, 255, 255, $alpha-12);
+$shadow-elev-3: 0 4px 16px rgba(255, 255, 255, $alpha-16);
+
+/** 在 .theme-dark 下输出与 :root 同结构的 CSS 变量（供 index 引用） */
+@mixin theme-dark-css-variables {
+  --primary: #{$primary};
+  --success: #{$success};
+  --caution: #{$caution};
+  --warning: #{$warning};
+  --danger: #{$danger};
+  --purple: #{$purple};
+  --info: #{$info};
+
+  --text-primary: #{$text-primary};
+  --text-secondary: #{$text-secondary};
+  --text-tertiary: #{$text-tertiary};
+  --text-quaternary: #{$text-quaternary};
+
+  --bg-primary: #{$bg-primary};
+  --bg-secondary: #{$bg-secondary};
+  --bg-tertiary: #{$bg-tertiary};
+  --border: #{$border};
+  --border-subtle: #{$border-subtle};
+
+  --overlay-80: #{$overlay-80};
+  --overlay-50: #{$overlay-50};
+  --overlay-40: #{$overlay-40};
+  --overlay-20: #{$overlay-20};
+  --overlay-10: #{$overlay-10};
+  --overlay-05: #{$overlay-05};
+
+  --opacity-disabled: #{$opacity-disabled};
+  --opacity-inactive: #{$opacity-inactive};
+
+  --shadow-elev-1: #{$shadow-elev-1};
+  --shadow-elev-2: #{$shadow-elev-2};
+  --shadow-elev-3: #{$shadow-elev-3};
+}
