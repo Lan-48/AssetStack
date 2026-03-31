@@ -1,7 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "custom-nav-bar": "../common/custom-nav-bar/custom-nav-bar",
-    "bottom-tab": "../common/bottom-tab/bottom-tab"
-  }
-}

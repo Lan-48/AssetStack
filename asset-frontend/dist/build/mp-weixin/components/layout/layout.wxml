@@ -1,1 +1,0 @@
-<view class="layout-container data-v-68fcd51e" style="{{d}}"><custom-nav-bar class="data-v-68fcd51e" bindmenuClick="{{a}}" bindsearchClick="{{b}}" bindsettingClick="{{c}}" u-i="68fcd51e-0" bind:__l="__l"/><view class="main-content data-v-68fcd51e"><slot/></view><bottom-tab class="data-v-68fcd51e" u-i="68fcd51e-1" bind:__l="__l"/></view>

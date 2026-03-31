@@ -1,1 +1,0 @@
-import{_ as a,k as s,p as e,l as t,j as d,q as n,v as o,x as r}from"./index-CHs5yIDF.js";const c=a({},[["render",function(a,c){const f=o,l=t;return d(),s(l,{class:"page"},{default:e(()=>[n(f,{class:"hint"},{default:e(()=>[r("待开发")]),_:1})]),_:1})}],["__scopeId","data-v-9fe1dbb4"]]);export{c as default};

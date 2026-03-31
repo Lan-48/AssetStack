@@ -10,6 +10,8 @@ node_modules/
 /build
 /dist
 /out
+unpackage/
+dev/
 
 # 环境变量文件
 .env
@@ -26,7 +28,6 @@ yarn-error.log*
 # 编辑器/IDE 配置
 .idea/
 .vscode/
-.cursor/
 *.swp
 *.swo
 *~
@@ -40,3 +41,11 @@ Thumbs.db
 *.pid
 *.seed
 *.pid.lock
+
+# 本地数据库/会话文件
+*.sql
+*.session.sql
+local-*
+
+# 临时文档（可选）
+doc/项目文档规范/
