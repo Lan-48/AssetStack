@@ -1,0 +1,1 @@
+<view class="settings-cell data-v-3313d9cf" bindtap="{{d}}"><text class="settings-cell__label data-v-3313d9cf">{{a}}</text><view wx:if="{{b}}" class="settings-cell__right data-v-3313d9cf"><image class="settings-cell__arrow data-v-3313d9cf" src="{{c}}" mode="aspectFit"/></view></view>

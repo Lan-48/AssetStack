@@ -1,0 +1,13 @@
+{
+  "pages": [
+    "pages/asset/list/asset-list-page",
+    "pages/asset/detail/asset-detail-page",
+    "pages/wardrobe/list/wardrobe-list-page",
+    "pages/setting/setting-page"
+  ],
+  "window": {
+    "navigationStyle": "default",
+    "backgroundColor": "#F2F2F7"
+  },
+  "usingComponents": {}
+}
