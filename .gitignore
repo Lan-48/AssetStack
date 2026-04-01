@@ -6,10 +6,10 @@ node_modules/
 # 测试覆盖率
 /coverage
 
-# 生产构建产物
-/build
-/dist
-/out
+# 生产构建产物（不写前导 /，否则只匹配仓库根目录，子项目如 asset-frontend/dist 不会被忽略）
+build/
+dist/
+out/
 unpackage/
 dev/
 
