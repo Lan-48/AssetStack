@@ -1,24 +1,26 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AssetModule } from './asset/asset.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: '123456',
-      database: 'asset_db',
-      autoLoadEntities: true,
-      synchronize: true,
-      logging: true,
-      // 移除不支持的选项
-      dateStrings: true,
-      timezone: '+08:00',
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'mysql',
+        host: config.get('DB_HOST', 'localhost'),
+        port: config.get<number>('DB_PORT', 3306),
+        username: config.get('DB_USERNAME', 'root'),
+        password: config.get('DB_PASSWORD', ''),
+        database: config.get('DB_DATABASE', 'asset_db'),
+        autoLoadEntities: true,
+        synchronize: true,
+        logging: true,
+        dateStrings: true,
+        timezone: '+08:00',
+      }),
     }),
     AssetModule,
   ],

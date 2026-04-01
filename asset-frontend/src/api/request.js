@@ -1,5 +1,6 @@
-// utils/request.js
-const baseURL = 'http://localhost:8080/api'; // 或通过条件编译区分环境
+import { BASE_URL } from './config';
+
+const baseURL = BASE_URL;
 
 const request = (options) => {
   return new Promise((resolve, reject) => {
