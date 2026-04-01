@@ -47,5 +47,6 @@ Thumbs.db
 *.session.sql
 local-*
 
-# 临时文档（可选）
-doc/项目文档规范/
+# 前端本地文档与 Cursor 配置（不提交）
+asset-frontend/doc/
+asset-frontend/.cursor/
