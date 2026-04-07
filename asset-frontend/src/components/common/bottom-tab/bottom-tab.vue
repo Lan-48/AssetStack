@@ -7,7 +7,7 @@
   - default: 无 props，高亮状态由当前路由与点击切换共同决定
 
   组件事件说明：
-  - 无: 暂无对外事件（Tab 切换通过 uni.navigateTo 跳转完成）
+  - add-click: 点击中间加号按钮时触发
 
   组件使用示例：
   <BottomTab />
@@ -31,15 +31,15 @@
   import type { BottomTabName } from './types'
 
   defineOptions({ name: 'BottomTab' })
+  const emit = defineEmits<{
+    'add-click': []
+  }>()
 
   const activeTab = ref<BottomTabName>('asset')
 
-  /** 加号入口占位：后续可改为跳转新增页或打开弹窗 */
+  /** 通知上层打开新增入口弹窗 */
   function addItem() {
-    uni.showToast({
-      title: '新增功能开发中',
-      icon: 'none',
-    })
+    emit('add-click')
   }
 
   /** 根据当前页路由初始化高亮 Tab */

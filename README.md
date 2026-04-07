@@ -14,26 +14,53 @@
 
 ```
 AssetStack/
-├── asset-frontend/          # 前端 (uni-app)
+├── asset-frontend/                  # 前端 (uni-app)
 │   ├── src/
-│   │   ├── api/             # 请求封装与接口定义
-│   │   ├── components/      # 公共组件 (布局、底部导航、资产卡片等)
-│   │   ├── pages/           # 页面 (资产列表、资产详情、服饰、设置)
-│   │   ├── styles/theme/    # 主题变量与 SCSS 样式
-│   │   ├── utils/           # 工具函数
-│   │   ├── pages.json       # 路由配置
-│   │   └── manifest.json    # uni-app 应用配置
+│   │   ├── api/                     # 请求封装 (request.js) 与接口定义 (asset-api.js)
+│   │   ├── assets/icons/            # 图标资源 (camera / check / delete / edit …)
+│   │   ├── components/
+│   │   │   ├── asset/               # 资产业务组件
+│   │   │   │   ├── asset-form-popup/  # 新增 / 编辑表单弹窗
+│   │   │   │   ├── asset-list/        # 资产列表
+│   │   │   │   ├── asset-stats-card/  # 统计卡片
+│   │   │   │   └── asset-toolbar/     # 工具栏（分类、排序、视图切换）
+│   │   │   ├── common/              # 通用 UI 组件
+│   │   │   │   ├── bottom-tab/        # 底部标签栏
+│   │   │   │   ├── custom-nav-bar/    # 自定义导航栏
+│   │   │   │   ├── dropdown/          # 下拉选择（支持二级分类）
+│   │   │   │   ├── popup/             # 底部弹窗
+│   │   │   │   ├── settings-cell/     # 设置项单元格
+│   │   │   │   └── settings-section/  # 设置项分组
+│   │   │   └── layout/              # 应用外壳 (NavBar + Slot + BottomTab)
+│   │   ├── pages/
+│   │   │   ├── asset/list/          # 资产列表页
+│   │   │   ├── asset/detail/        # 资产详情页
+│   │   │   ├── wardrobe/list/       # 服饰列表页（占位）
+│   │   │   └── setting/             # 设置页（占位）
+│   │   ├── styles/theme/            # 主题变量与 SCSS 样式
+│   │   ├── utils/                   # 工具函数
+│   │   ├── pages.json               # 路由配置
+│   │   └── manifest.json            # uni-app 应用配置
+│   ├── .env.example                 # 前端环境变量模板
 │   ├── package.json
 │   └── vite.config.js
-├── asset-backend/           # 后端 (NestJS)
+├── asset-backend/                   # 后端 (NestJS)
 │   ├── src/
-│   │   ├── asset/           # 资产模块 (Controller / Service / Entity / DTO)
-│   │   ├── app.module.ts    # 根模块 (数据库连接配置)
-│   │   └── main.ts          # 启动入口 (端口、CORS、Swagger)
+│   │   ├── asset/                   # 资产模块
+│   │   │   ├── asset.controller.ts    # HTTP 路由
+│   │   │   ├── asset.service.ts       # 业务逻辑 + 分页查询
+│   │   │   ├── asset.entity.ts        # TypeORM 实体
+│   │   │   ├── asset.module.ts        # 模块注册
+│   │   │   └── dto/                   # 请求验证 (create / update DTO)
+│   │   ├── app.module.ts             # 根模块 (数据库连接配置)
+│   │   └── main.ts                   # 启动入口 (端口、CORS、Swagger)
+│   ├── .env.example                  # 后端环境变量模板
 │   ├── package.json
 │   └── tsconfig.json
 └── .gitignore
 ```
+
+> 每个组件目录遵循 `组件名.vue` + `types.ts` + `index.ts` 的三文件规范。
 
 ## 快速开始
 
@@ -51,9 +78,21 @@ AssetStack/
 CREATE DATABASE asset_db CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
-> 默认连接配置位于 `asset-backend/src/app.module.ts`，使用 `root / 123456`。请根据实际环境修改。
+### 2. 配置环境变量
 
-### 2. 启动后端
+```bash
+# 后端
+cp asset-backend/.env.example asset-backend/.env
+# 按需修改 DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_DATABASE / APP_PORT / CORS_ORIGIN
+
+# 前端
+cp asset-frontend/.env.example asset-frontend/.env
+# 按需修改 VITE_API_BASE_URL / VITE_WX_APPID
+```
+
+> 后端默认端口 `8080`，前端 H5 默认端口 `5173`。
+
+### 3. 启动后端
 
 ```bash
 cd asset-backend
@@ -63,7 +102,7 @@ npm run start:dev
 
 服务启动后监听 `http://localhost:8080`，API 文档访问 `http://localhost:8080/api-docs`。
 
-### 3. 启动前端
+### 4. 启动前端
 
 ```bash
 cd asset-frontend
@@ -92,6 +131,8 @@ npm run devpc
 
 查询参数：`pageNum`、`pageSize`、`status`、`category`
 
+响应格式：`{ code, message, data }`
+
 ## 数据模型
 
 **Asset 实体**
@@ -99,13 +140,13 @@ npm run devpc
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `id` | int (PK) | 自增主键 |
-| `name` | string | 资产名称 |
-| `price` | varchar(20) | 价格 |
+| `name` | varchar(255) | 资产名称 |
+| `price` | varchar(20) | 价格（字符串存储，避免精度问题） |
 | `purchaseDate` | date | 购入日期 |
 | `warrantyDate` | date | 保修截止日期（可选） |
-| `status` | string | 状态：在用 / 闲置 / 预购入 / 退役 |
-| `category` | string | 分类 |
-| `additionalCost` | varchar | 附加费用 |
+| `status` | varchar(20) | 状态：在用 / 闲置 / 预购入 / 退役 |
+| `category` | varchar(50) | 分类 |
+| `additionalCost` | varchar(20) | 附加费用（默认 `"0.00"`） |
 | `description` | text | 备注（可选） |
 | `createdAt` | timestamp | 创建时间 |
 
@@ -136,7 +177,10 @@ npm run devpc
 - [x] 资产列表（分页、筛选、排序、列表/网格视图）
 - [x] 资产统计（数量、总金额、日均消费）
 - [x] 资产 CRUD API + Swagger 文档
-- [ ] 资产详情页
+- [x] 资产详情页（票卡 UI、编辑、删除）
+- [x] 资产新增/编辑表单弹窗（AssetFormPopup）
+- [x] 通用 UI 组件（Popup、Dropdown、NavBar、BottomTab）
+- [ ] 资产图片上传
 - [ ] 服饰管理模块
 - [ ] 设置页功能接入
 - [ ] 用户认证

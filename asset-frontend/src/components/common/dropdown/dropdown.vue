@@ -382,8 +382,9 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 $spacing-sm;
-  height: 36px;
+  height: $size-control-height-sm;
   border-radius: $radius-xs;
+  box-sizing: border-box;
 }
 
 .dropdown-disabled {
@@ -402,8 +403,8 @@ onUnmounted(() => {
 }
 
 .arrow-icon {
-  width: 16px;
-  height: 16px;
+  width: $size-icon-inline;
+  height: $size-icon-inline;
   margin-left: $spacing-xs;
   transition: transform 0.3s;
   /* 图稿朝左，顺时针 90° → 收起态朝下 */
@@ -420,25 +421,26 @@ onUnmounted(() => {
   top: 100%;
   left: 0;
   right: 0;
-  margin-top: 4px;
+  margin-top: $spacing-xs;
   background: $bg-primary;
   border-radius: $radius-xs;
   box-shadow: $shadow-dropdown-panel;
-  z-index: 999;
+  z-index: $z-dropdown-panel;
   overflow: hidden;
 }
 
 .dropdown-scroll {
   max-height: v-bind('maxHeight');
-  padding: $spacing-xs 0;
+  padding: $spacing-xs;
+  box-sizing: border-box;
 }
 
 /* 一级分类项样式 */
 .dropdown-item {
   display: flex;
   align-items: center;
-  min-height: 32px;
-  margin-bottom: 4px;
+  min-height: $size-list-row-min;
+  margin-bottom: $spacing-xs;
 }
 
 .parent-item.selected {
@@ -451,25 +453,25 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
+  width: $size-icon-cell;
+  min-width: $size-icon-cell;
+  height: $size-icon-cell;
   margin-left: $spacing-sm;
   margin-right: $spacing-xs;
   border-radius: $radius-xs;
 }
 
 .expand-placeholder {
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
+  width: $size-icon-cell;
+  min-width: $size-icon-cell;
+  height: $size-icon-cell;
   margin-left: $spacing-sm;
   margin-right: $spacing-xs;
 }
 
 .expand-icon-img {
-  width: 24px;
-  height: 24px;
+  width: $size-icon-cell;
+  height: $size-icon-cell;
   transition: transform 0.2s ease;
   transform: rotate(0deg);
 }
@@ -480,7 +482,7 @@ onUnmounted(() => {
 
 /* 一级分类内容区域 */
 .item-content {
-  padding: 4px 0;
+  padding: $spacing-xs 0;
 }
 
 .item-text {
@@ -506,9 +508,9 @@ onUnmounted(() => {
 
 /* 二级分类缩进占位 */
 .child-indent-placeholder {
-  width: 16px;
-  min-width: 16px;
-  height: 24px;
+  width: $size-icon-inline;
+  min-width: $size-icon-inline;
+  height: $size-icon-cell;
   margin-left: $spacing-sm;
   margin-right: $spacing-xs;
 }
@@ -533,7 +535,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 998;
+  z-index: $z-dropdown-overlay;
   background-color: transparent;
 }
 
@@ -541,28 +543,28 @@ onUnmounted(() => {
 .dropdown-container--toolbar {
   .dropdown-toggle {
     background: $bg-primary !important;
-    border-radius: 32rpx !important;
-    padding: 12rpx 24rpx !important;
-    font-size: 28rpx !important;
+    border-radius: $radius-sm !important;
+    /* 12rpx ≈ $spacing-sm - $spacing-xs/2，24rpx = $spacing-md */
+    padding: calc(#{$spacing-sm} - #{$spacing-xs} / 2) $spacing-md !important;
     color: $text-primary !important;
-    height: 64rpx;
+    height: $spacing-base * 2;
     box-sizing: border-box;
     border: none !important;
 
     .selected-text {
-      font-size: 28rpx !important;
+      font-size: $font-sm !important;
       color: $text-primary !important;
     }
   }
 
   .dropdown-menu {
-    border-radius: 16rpx !important;
+    border-radius: $radius-xs !important;
     overflow: hidden;
   }
 
   .dropdown-item.selected {
-    border-radius: 16rpx !important;
-    height: 44rpx !important;
+    border-radius: $radius-xs !important;
+    min-height: $font-md + $spacing-xs !important;
     color: $primary !important;
     background-color: rgba($primary, $alpha-10) !important;
   }

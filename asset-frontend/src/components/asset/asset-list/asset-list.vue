@@ -113,8 +113,9 @@
       return
     }
 
+    const dailyAvg = dailyAvgPerDay(item)
     uni.navigateTo({
-      url: `/pages/asset/detail/asset-detail-page?id=${item.id}`,
+      url: `/pages/asset/detail/asset-detail-page?id=${item.id}&dailyAvg=${encodeURIComponent(dailyAvg)}`,
       fail: () => {
         uni.showToast({ title: '跳转失败', icon: 'none' })
       },
