@@ -13,10 +13,11 @@ const request = (options) => {
         ...options.header,
       },
       success: (res) => {
-        // 响应拦截器逻辑
-        if (res.statusCode === 200) {
+        // NestJS POST 默认返回 201 Created，仅判断 200 会导致新增等接口被误判失败
+        const status = res.statusCode
+        if (status >= 200 && status < 300) {
           resolve(res.data);
-        } else if (res.statusCode === 401) {
+        } else if (status === 401) {
           uni.showToast({ title: '登录已过期', icon: 'none' });
           // 跳转登录页
           uni.redirectTo({ url: '/pages/login/login' });

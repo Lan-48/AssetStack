@@ -17,9 +17,9 @@ $radius-full: 9999rpx;// 圆形/胶囊形
 // 字体大小（苹果动态类型层级，rpx 适配移动端）
 // ------------------------------
 $font-xs: 24rpx;     // 极小：辅助文字、备注
-$font-sm: 26rpx;     // 小：次要信息、提示
-$font-base: 30rpx;   // 正文：默认文本
-$font-md: 34rpx;     // 中等：按钮、导航
+$font-sm: 28rpx;     // 小：次要信息、提示
+$font-base: 32rpx;   // 正文：默认文本
+$font-md: 36rpx;     // 中等：按钮、导航
 $font-lg: 40rpx;     // 标题：页面标题
 $font-xl: 48rpx;     // 大标题：模块标题
 $font-2xl: 56rpx;    // 超大标题：顶部大标题
@@ -34,6 +34,20 @@ $spacing-md: 24rpx;  // 中等：模块间距
 $spacing-base: 32rpx;// 基础：卡片内边距
 $spacing-lg: 40rpx;  // 大：页面模块间距
 $spacing-xl: 48rpx;  // 超大：页面级间距
+
+// ------------------------------
+// 控件高度与图标边长（与 $spacing / $font-* 搭配，统一 rpx）
+// ------------------------------
+$size-control-height-sm: 72rpx; // 紧凑下拉触发器等（约 36px 逻辑高）
+$size-list-row-min: 64rpx; // 下拉列表行最小高度（约 32px）
+$size-icon-inline: 32rpx; // 行内箭头、小图标边长（约 16px）
+$size-icon-cell: 48rpx; // 单元格内图标触控区（约 24px）
+
+// ------------------------------
+// 分层（组件内弹出；低于全局 Modal，高于页面内容）
+// ------------------------------
+$z-dropdown-overlay: 998;
+$z-dropdown-panel: 999;
 
 // ------------------------------
 // 不透明度刻度（0–1）：工程内 rgba 第四维、阴影 alpha、与 opacity 属性统一来源

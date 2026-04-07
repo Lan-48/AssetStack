@@ -54,7 +54,7 @@
 
 <script setup>
 import { onShow } from '@dcloudio/uni-app'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { fetchAssetList } from '@/api'
 import Layout from '@/components/layout/layout.vue'
 import AssetStatsCard from '@/components/asset/asset-stats-card/asset-stats-card.vue'
@@ -87,6 +87,22 @@ const loadAssets = async () => {
 // 每次页面显示时拉取列表（从详情返回等场景会再次触发）
 onShow(() => {
   loadAssets()
+})
+
+/** 与 AppLayout 中加号提交的 uni.$emit('asset:changed') 联动；便于控制台对照弹窗与列表刷新时序 */
+function onAssetChangedFromGlobal() {
+  console.log('[AssetListPage] asset:changed -> loadAssets()', {
+    time: Date.now(),
+  })
+  loadAssets()
+}
+
+onMounted(() => {
+  uni.$on('asset:changed', onAssetChangedFromGlobal)
+})
+
+onUnmounted(() => {
+  uni.$off('asset:changed', onAssetChangedFromGlobal)
 })
 
 // 计算后的资产列表（补充 days 等展示字段）

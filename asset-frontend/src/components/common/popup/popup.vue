@@ -261,6 +261,7 @@ onUnmounted(() => {
 .popup-overlay {
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: $overlay-40;
   opacity: 0;
   transition-property: opacity;
@@ -273,16 +274,18 @@ onUnmounted(() => {
 
 .popup-panel {
   position: absolute;
+  z-index: 2;
   background: $bg-primary;
   box-shadow: $shadow-md;
+  box-sizing: border-box;
   transition-property: transform, opacity;
   transition-timing-function: ease;
   opacity: 0;
 }
 
+/* 仅控制显隐；位移必须与 position 组合，否则后面的 .popup-panel--bottom 等会覆盖 transform，导致面板永在屏外 */
 .popup-panel--active {
   opacity: 1;
-  transform: translate3d(0, 0, 0);
 }
 
 .popup-panel--inactive {
@@ -293,28 +296,58 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   width: 100%;
+}
+
+.popup-panel--top.popup-panel--inactive {
   transform: translate3d(0, -100%, 0);
+}
+
+.popup-panel--top.popup-panel--active {
+  transform: translate3d(0, 0, 0);
 }
 
 .popup-panel--bottom {
   bottom: 0;
   left: 0;
   width: 100%;
+  /* 高度与滚动由插槽内容控制（如 max-height + overflow-y），此处不裁剪，避免截断内置 picker */
+  overflow: visible;
+}
+
+.popup-panel--bottom.popup-panel--inactive {
   transform: translate3d(0, 100%, 0);
+}
+
+.popup-panel--bottom.popup-panel--active {
+  transform: translate3d(0, 0, 0);
 }
 
 .popup-panel--left {
   top: 0;
   left: 0;
   height: 100%;
+}
+
+.popup-panel--left.popup-panel--inactive {
   transform: translate3d(-100%, 0, 0);
+}
+
+.popup-panel--left.popup-panel--active {
+  transform: translate3d(0, 0, 0);
 }
 
 .popup-panel--right {
   top: 0;
   right: 0;
   height: 100%;
+}
+
+.popup-panel--right.popup-panel--inactive {
   transform: translate3d(100%, 0, 0);
+}
+
+.popup-panel--right.popup-panel--active {
+  transform: translate3d(0, 0, 0);
 }
 
 .popup-panel--safe-top {

@@ -10,84 +10,94 @@
     </view>
 
     <scroll-view v-else class="detail-scroll" scroll-y>
-      <view class="ticket-card">
-        <view class="asset-name-row">
-          <view class="asset-name-row__spacer" />
-          <text class="asset-name">{{ detail.name || '--' }}</text>
-          <view class="asset-name-edit" @tap="onEditTap">
-            <image class="asset-name-edit__icon" :src="editIcon" mode="aspectFit" />
-          </view>
+      <view class="detail-toolbar">
+        <view
+          class="detail-toolbar__btn"
+          :class="{ 'is-disabled': deletingAsset }"
+          @tap="onDeleteTap"
+        >
+          <image class="detail-toolbar__icon" :src="deleteIcon" mode="aspectFit" />
         </view>
+        <view class="detail-toolbar__btn" @tap="onEditTap">
+          <image class="detail-toolbar__icon" :src="editIcon" mode="aspectFit" />
+        </view>
+      </view>
 
-        <view class="image-placeholder-wrap">
+      <view class="asset-hero">
+        <view class="asset-hero__image-wrap">
           <view class="image-placeholder">
             <image class="image-placeholder__icon" :src="cameraIcon" mode="aspectFit" />
           </view>
         </view>
-
-        <view class="status-row">
-          <text class="row-label">使用状态</text>
-          <view class="status-tag" :class="statusClass">
-            {{ detail.status || '未设置' }}
-          </view>
+        <view class="asset-hero__chips">
+          <view class="hero-chip" :class="statusClass">{{ detail.status || '未设置' }}</view>
+          <view class="hero-chip">{{ detail.category || '未分类' }}</view>
         </view>
+      </view>
+
+      <view class="ticket-card">
+        <text class="asset-name">{{ detail.name || '--' }}</text>
+
+        <view class="ticket-divider" />
 
         <view class="info-row">
-          <text class="row-label">分类</text>
-          <text class="row-value">{{ detail.category || '--' }}</text>
-        </view>
-        <view class="dashed-line" />
-
-        <view class="info-row">
-          <text class="row-label">购入日期</text>
-          <text class="row-value">{{ formatDate(detail.purchaseDate) }}</text>
-        </view>
-        <view class="dashed-line" />
-
-        <view class="info-row">
-          <text class="row-label">购买价格</text>
+          <text class="row-label">购入价格</text>
           <text class="row-value row-value--price">¥{{ formatPrice(detail.price) }}</text>
         </view>
-        <view class="dashed-line" />
+        <view class="ticket-line" />
 
         <view class="info-row">
-          <text class="row-label">日均价格</text>
-          <text class="row-value">¥{{ dailyAvgPrice }}/天</text>
+          <text class="row-label">购买日期</text>
+          <text class="row-value">{{ formatDate(detail.purchaseDate) }}</text>
         </view>
-        <view class="dashed-line" />
+        <view class="ticket-line" />
 
         <view class="info-row">
           <text class="row-label">保修日期</text>
           <text class="row-value">{{ formatDate(detail.warrantyDate) }}</text>
         </view>
-        <view class="dashed-line" />
+        <view class="ticket-line" />
 
-        <view class="remark-row">
-          <text class="row-label">备注</text>
-          <view class="remark-box">
-            <text class="remark-text">{{ detail.description || '暂无备注' }}</text>
+        <view class="ticket-remarks">
+          <text class="ticket-remarks__title">备注</text>
+          <view class="ticket-remarks__body">
+            <text
+              class="ticket-remarks__text"
+              :class="{ 'ticket-remarks__text--empty': !remarkText }"
+            >{{ remarkText || '暂无备注' }}</text>
           </view>
         </view>
       </view>
     </scroll-view>
+
+    <AssetFormPopup
+      v-model:show="showEditPopup"
+      mode="edit"
+      :model-value="detail"
+      :submitting="submittingEdit"
+      @submit="onEditSubmit"
+    />
   </view>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { fetchAssetDetail } from '@/api'
+import { deleteAsset, fetchAssetDetail, updateAsset } from '@/api'
+import AssetFormPopup from '@/components/asset/asset-form-popup/asset-form-popup.vue'
 import cameraIcon from '@/assets/icons/camera.png'
+import deleteIcon from '@/assets/icons/delete.png'
 import editIcon from '@/assets/icons/edit.png'
-import { calculateDaysToNow } from '@/utils/date-utils.js'
 
 const detail = ref({})
 const loading = ref(true)
 const loadError = ref(false)
 const errorMessage = ref('加载失败，请稍后重试')
 const assetId = ref('')
-/** 列表页跳转时带入，与列表「¥xx/天」一致；无参数时（直达/分享）用接口数据现算 */
-const prefDailyAvg = ref('')
+const showEditPopup = ref(false)
+const submittingEdit = ref(false)
+/** 详情页删除（与编辑提交独立，避免互锁） */
+const deletingAsset = ref(false)
 
 const statusClass = computed(() => {
   const status = detail.value.status || ''
@@ -98,21 +108,10 @@ const statusClass = computed(() => {
   return 'status-tag--default'
 })
 
-const dailyAvgPrice = computed(() => {
-  const q = prefDailyAvg.value.trim()
-  if (q !== '') {
-    const n = Number.parseFloat(q)
-    if (Number.isFinite(n)) return n.toFixed(2)
-  }
-  const price = Number.parseFloat(String(detail.value?.price ?? ''))
-  const days = calculateDaysToNow(detail.value?.purchaseDate)
-  if (!Number.isFinite(price) || !days) return '0.00'
-  return (price / days).toFixed(2)
-})
+const remarkText = computed(() => String(detail.value.description ?? '').trim())
 
 onLoad((query) => {
   const id = String(query?.id || '')
-  prefDailyAvg.value = query?.dailyAvg != null ? decodeURIComponent(String(query.dailyAvg)) : ''
   assetId.value = id
   if (!id) {
     loading.value = false
@@ -155,7 +154,79 @@ function formatPrice(value) {
 }
 
 function onEditTap() {
-  uni.showToast({ title: '编辑功能开发中', icon: 'none' })
+  if (!assetId.value) {
+    uni.showToast({ title: '缺少资产 id', icon: 'none' })
+    return
+  }
+  showEditPopup.value = true
+}
+
+async function onEditSubmit(payload) {
+  if (submittingEdit.value || !assetId.value) return
+  submittingEdit.value = true
+
+  const requestPayload = {
+    name: payload.name,
+    category: payload.category,
+    price: payload.price,
+    purchaseDate: payload.purchaseDate,
+    warrantyDate: payload.warrantyDate,
+    status: payload.status,
+    description: payload.description,
+  }
+
+  try {
+    await updateAsset(assetId.value, requestPayload)
+    showEditPopup.value = false
+    uni.showToast({ title: '更新成功', icon: 'success' })
+    uni.$emit('asset:changed')
+    await loadDetail()
+  } catch (error) {
+    console.error('更新资产失败:', error)
+    uni.showToast({ title: '更新失败，请稍后重试', icon: 'none' })
+  } finally {
+    submittingEdit.value = false
+  }
+}
+
+function onDeleteTap() {
+  if (deletingAsset.value || !assetId.value) {
+    if (!assetId.value) uni.showToast({ title: '缺少资产 id', icon: 'none' })
+    return
+  }
+
+  uni.showModal({
+    title: '删除资产',
+    content: '删除后不可恢复，确认删除吗？',
+    confirmColor: '#FF3B30',
+    success: (res) => {
+      if (res.confirm) confirmDeleteAsset()
+    },
+  })
+}
+
+async function confirmDeleteAsset() {
+  if (deletingAsset.value || !assetId.value) return
+  deletingAsset.value = true
+
+  try {
+    await deleteAsset(assetId.value)
+    showEditPopup.value = false
+    uni.showToast({ title: '删除成功', icon: 'success' })
+    uni.$emit('asset:changed')
+
+    const pages = getCurrentPages()
+    if (pages.length > 1) {
+      uni.navigateBack()
+    } else {
+      uni.redirectTo({ url: '/pages/asset/list/asset-list-page' })
+    }
+  } catch (error) {
+    console.error('删除资产失败:', error)
+    uni.showToast({ title: '删除失败，请稍后重试', icon: 'none' })
+  } finally {
+    deletingAsset.value = false
+  }
 }
 </script>
 
@@ -164,46 +235,24 @@ function onEditTap() {
 @use '@/styles/theme/themes/default.scss' as *;
 
 .page {
-  min-height: 100vh;
   box-sizing: border-box;
   background-color: $bg-secondary;
 }
 
 .detail-scroll {
-  height: 100vh;
+  height: 100%;
   padding: $spacing-base $spacing-base calc($spacing-xl + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
 }
 
-.ticket-card {
-  padding: $spacing-base;
-  border-radius: $radius-lg;
-  background-color: $bg-primary;
-  box-shadow: $shadow-elev-1;
-}
-
-.asset-name-row {
+.detail-toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: $spacing-md;
 }
 
-/* 与右侧编辑按钮同宽，保证标题在卡片内视觉居中 */
-.asset-name-row__spacer {
-  width: 72rpx;
-  flex-shrink: 0;
-}
-
-.asset-name {
-  flex: 1;
-  min-width: 0;
-  text-align: center;
-  font-size: $font-lg;
-  color: $text-primary;
-  word-break: break-all;
-}
-
-.asset-name-edit {
+.detail-toolbar__btn {
   width: 80rpx;
   height: 80rpx;
   flex-shrink: 0;
@@ -211,18 +260,77 @@ function onEditTap() {
   align-items: center;
   justify-content: center;
   border-radius: $radius-full;
+  background-color: $bg-primary;
   box-shadow: $shadow-sm;
+  box-sizing: border-box;
 }
 
-.asset-name-edit__icon {
+.detail-toolbar__icon {
   width: 44rpx;
   height: 44rpx;
 }
 
-.image-placeholder-wrap {
+.detail-toolbar__btn.is-disabled {
+  opacity: $opacity-disabled;
+}
+
+.asset-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+}
+
+.asset-hero__image-wrap {
   display: flex;
   justify-content: center;
-  margin-bottom: $spacing-md;
+  width: 100%;
+}
+
+.asset-hero__chips {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.hero-chip {
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-sm;
+  background-color: $border-subtle;
+  font-size: $font-sm;
+  color: $text-primary;
+}
+
+.ticket-card {
+  position: relative;
+  overflow: hidden;
+  padding: $spacing-base $spacing-base 0;
+  background-color: $bg-primary;
+  box-shadow: $shadow-elev-1;
+}
+
+/* 撕边齿孔内嵌在票身底部（与票面同一块白底，不再外挂负 margin 条带） */
+.ticket-card::after {
+  content: '';
+  display: block;
+  height: 28rpx;
+  margin-top: $spacing-base;
+  margin-left: (-$spacing-base);
+  margin-right: (-$spacing-base);
+  background: radial-gradient(circle at 16rpx -5rpx, transparent 16rpx, $bg-secondary 17rpx) repeat-x;
+  background-size: 44rpx 28rpx;
+}
+
+.asset-name {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: $font-base;
+  color: $text-primary;
+  word-break: break-all;
+  margin-bottom: $spacing-base;
+  box-sizing: border-box;
 }
 
 .image-placeholder {
@@ -233,71 +341,104 @@ function onEditTap() {
   align-items: center;
   justify-content: center;
   border-radius: $radius-md;
-  background-color: $bg-tertiary;
-  border: 1px dashed $border-subtle;
+  background-color: $border-subtle;
   box-sizing: border-box;
-  box-shadow: $shadow-sm;
 }
 
 .image-placeholder__icon {
-  width: 88rpx;
-  height: 88rpx;
+  width: 96rpx;
+  height: 96rpx;
 }
 
-.status-row,
+.ticket-divider {
+  position: relative;
+  margin: 0 (-$spacing-base) $spacing-base;
+  border-bottom: 1px dashed $border;
+}
+
+.ticket-divider::before,
+.ticket-divider::after {
+  content: '';
+  position: absolute;
+  bottom: -32rpx;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: $radius-full;
+  background-color: $bg-secondary;
+}
+
+.ticket-divider::before {
+  left: -32rpx;
+}
+
+.ticket-divider::after {
+  right: -32rpx;
+}
+
 .info-row {
+  padding: $spacing-md;
   min-height: 72rpx;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.remark-row {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  padding-top: $spacing-xs;
-}
-
-.remark-box {
-  width: 100%;
-  box-sizing: border-box;
-  padding: $spacing-sm $spacing-md;
-  border-radius: $radius-sm;
-  background-color: $bg-secondary;
-}
-
 .row-label {
   font-size: $font-base;
-  color: $text-secondary;
+  color: $text-primary;
 }
 
 .row-value {
-  max-width: 66%;
+  max-width: 60%;
   text-align: right;
   font-size: $font-base;
-  color: $text-primary;
+  color: $text-secondary;
   word-break: break-all;
 }
 
 .row-value--price {
   color: $primary;
-  font-weight: 600;
 }
 
-.remark-text {
-  display: block;
-  width: 100%;
-  font-size: $font-sm;
-  line-height: 1.7;
-  color: $text-secondary;
-  word-break: break-all;
-}
-
-.dashed-line {
+.ticket-line {
   width: 100%;
   height: 1px;
-  border-bottom: 1px dashed $border-subtle;
+  border-bottom: 1px solid $border-subtle;
+}
+
+.ticket-remarks {
+  margin-top: $spacing-lg;
+  padding: $spacing-md;
+  background-color: $border-subtle;
+  border-radius: $radius-md;
+  box-sizing: border-box;
+}
+
+.ticket-remarks__title {
+  display: block;
+  font-size: $font-base;
+  color: $text-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.ticket-remarks__body {
+  background-color: $bg-primary;
+  border-radius: $radius-xs;
+  padding: $spacing-xs;
+  min-height: 120rpx;
+  box-sizing: border-box;
+}
+
+.ticket-remarks__text {
+  font-size: $font-sm;
+  color: $text-secondary;
+  line-height: 1.5;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.ticket-remarks__text--empty {
+  color: $text-tertiary;
 }
 
 .status-tag {

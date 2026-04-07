@@ -29,19 +29,32 @@
     </view>
 
     <!-- 底部自定义 Tab（含加号） -->
-    <BottomTab />
+    <BottomTab @add-click="openAddPopup" />
+
+    <AssetFormPopup
+      v-model:show="showAddAssetPopup"
+      mode="create"
+      :submitting="submittingAsset"
+      @submit="onAddAsset"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
   import { ref, onMounted, nextTick } from 'vue'
+  // @ts-expect-error - api 模块暂未提供 d.ts 声明
+  import { createAsset } from '@/api/asset-api.js'
   import CustomNavBar from '@/components/common/custom-nav-bar/custom-nav-bar.vue'
   import BottomTab from '@/components/common/bottom-tab/bottom-tab.vue'
+  import AssetFormPopup from '@/components/asset/asset-form-popup/asset-form-popup.vue'
+  import type { AssetFormSubmitPayload } from '@/components/asset/asset-form-popup/types'
 
   defineOptions({ name: 'AppLayout' })
 
   /** 小程序胶囊以下起始位置 + 与 $spacing-md(24rpx) 一致的额外顶距 */
   const containerStyle = ref({})
+  const showAddAssetPopup = ref(false)
+  const submittingAsset = ref(false)
 
   function syncTopSafeArea() {
     let insetPx = 0
@@ -83,6 +96,45 @@
 
   const onSettingClick = () => {
     console.log('点击设置')
+  }
+
+  function openAddPopup() {
+    showAddAssetPopup.value = true
+  }
+
+  async function onAddAsset(payload: AssetFormSubmitPayload) {
+    if (submittingAsset.value) return
+    submittingAsset.value = true
+
+    // 与后端 CreateAssetDto 对齐：字段名保持一致，便于接口直传与后续排查。
+    const requestPayload = {
+      name: payload.name,
+      category: payload.category,
+      price: payload.price,
+      purchaseDate: payload.purchaseDate,
+      warrantyDate: payload.warrantyDate,
+      status: payload.status,
+      description: payload.description,
+    }
+
+    try {
+      await createAsset(requestPayload)
+      showAddAssetPopup.value = false
+      uni.showToast({
+        title: '新增成功',
+        icon: 'success',
+      })
+      // 通知列表页刷新，避免用户返回时看到旧数据。
+      uni.$emit('asset:changed')
+    } catch (error) {
+      console.error('新增资产失败:', error)
+      uni.showToast({
+        title: '新增失败，请稍后重试',
+        icon: 'none',
+      })
+    } finally {
+      submittingAsset.value = false
+    }
   }
 </script>
 
