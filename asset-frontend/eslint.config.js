@@ -34,6 +34,23 @@ export default [
     }
   },
 
+  // 全局声明文件：参数名仅作文档，放在 **/*.ts 之后以覆盖对该文件的规则
+  {
+    files: ['**/*.d.ts'],
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+    },
+    plugins: {
+      '@typescript-eslint': ts,
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
+
   // Vue 文件：vue-eslint-parser + TS 子解析，支持 <script setup lang="ts">
   {
     files: ['**/*.vue'],

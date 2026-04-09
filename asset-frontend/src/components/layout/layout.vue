@@ -42,8 +42,7 @@
 
 <script setup lang="ts">
   import { ref, onMounted, nextTick } from 'vue'
-  // @ts-expect-error - api 模块暂未提供 d.ts 声明
-  import { createAsset } from '@/api/asset-api.js'
+  import { createAsset } from '@/api/asset-api'
   import CustomNavBar from '@/components/common/custom-nav-bar/custom-nav-bar.vue'
   import BottomTab from '@/components/common/bottom-tab/bottom-tab.vue'
   import AssetFormPopup from '@/components/asset/asset-form-popup/asset-form-popup.vue'
