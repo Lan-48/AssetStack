@@ -9,6 +9,7 @@ import {
   Query,
   NotFoundException,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 // 👇 新增：Swagger 注解
 import {
@@ -17,12 +18,20 @@ import {
   ApiQuery,
   ApiBody,
   ApiResponse,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { CreateAssetDto, UpdateAssetDto } from './dto';
 import { AssetService, AssetPaginationResult } from './asset.service';
 import { Asset } from './asset.entity';
+import { LoginAuthGuard } from '../auth/login/login-auth.guard';
 
 @ApiTags('资产管理') // 👈 新增：接口分组标签
+@ApiHeader({
+  name: 'token',
+  required: true,
+  description: '登录成功后返回的 token',
+})
+@UseGuards(LoginAuthGuard)
 @Controller('asset')
 export class AssetController {
   constructor(private readonly assetService: AssetService) {}
