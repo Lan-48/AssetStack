@@ -14,19 +14,28 @@
 -->
 <template>
   <view class="settings-page">
-    <!-- 顶部用户信息卡片：头像 + 昵称 + 会员标识 -->
-    <view class="user-card" @tap="onUserTap">
-      <view class="user-card__left">
-        <!-- 圆形头像：aspectFill 保证铺满圆内，多余部分裁剪 -->
-        <image class="user-card__avatar" :src="avatarImg" mode="aspectFill" />
+    <!-- 顶部用户信息卡片：头像 + 昵称/VIP + 手机号；右侧退出 -->
+    <view class="user-card">
+      <view class="user-card__main">
+        <image
+          class="user-card__avatar"
+          :src="avatarDisplaySrc"
+          mode="aspectFill"
+          @tap="openAvatarPopup"
+        />
         <view class="user-card__text">
-          <text class="user-card__name">Lan</text>
-          <view class="user-card__badge">
-            <text class="user-card__badge-text">VIP 会员</text>
+          <view class="user-card__name-row">
+            <text class="user-card__name" @tap="openNicknamePopup">{{ nicknameDisplay }}</text>
+            <view class="user-card__badge">
+              <text class="user-card__badge-text">VIP会员</text>
+            </view>
           </view>
+          <text class="user-card__phone" @tap="openPhonePopup">{{ phoneDisplay }}</text>
         </view>
       </view>
-      <image class="user-card__arrow" :src="arrowBoldIcon" mode="aspectFit" />
+      <view class="user-card__logout" @tap.stop="onLogoutTap">
+        <image class="user-card__logout-icon" :src="logoutIcon" mode="aspectFit" />
+      </view>
     </view>
 
     <!-- 资产相关 -->
@@ -47,26 +56,73 @@
     <SettingsSection>
       <SettingsCell label="货币单位切换" @tap="onTap('货币单位切换')" />
     </SettingsSection>
+
+    <ProfileEditPopup
+      v-model:show="showProfilePopup"
+      :mode="profilePopupMode"
+      :nickname="userNickname"
+      :phone="userPhone"
+      :avatar="userAvatar"
+      :default-avatar="defaultAvatarImg"
+      :can-send-code="canSendProfileCode"
+      :countdown="phoneCodeCountdown"
+      :phone-send-error="profilePhoneSendError"
+      :code-send-error="profileCodeSendError"
+      @save-nickname="onSaveNickname"
+      @send-code="onSendProfilePhoneCode"
+      @save-phone="onSavePhone"
+      @save-avatar="onSaveAvatar"
+      @clear-phone-send-error="onClearProfilePhoneSendError"
+      @clear-code-send-error="onClearProfileCodeSendError"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
-  /** 与 arrow-bold 一致为朝左资源，样式中 scaleX(-1) 作为向右箭头 */
-  import arrowBoldIcon from '@/assets/icons/arrow-bold.png'
-  import avatarImg from '@/assets/images/avatar.jpg'
+  import { onUnmounted } from 'vue'
+  import { onShow } from '@dcloudio/uni-app'
+  import defaultAvatarImg from '@/assets/images/avatar.jpg'
+  import logoutIcon from '@/assets/icons/logout.png'
+  import ProfileEditPopup from '@/components/common/profile-edit-popup/profile-edit-popup.vue'
   import SettingsCell from '@/components/common/settings-cell/settings-cell.vue'
   import SettingsSection from '@/components/common/settings-section/settings-section.vue'
+  import { useSetting } from '@/services/pages/setting/use-setting'
 
-  /** 列表项点击：占位逻辑，后续替换为跳转或弹窗 */
-  function onTap(name: string) {
-    console.log(`${name} 点击`)
-    uni.showToast({ title: `${name}（待接入）`, icon: 'none' })
-  }
+  const {
+    userNickname,
+    userPhone,
+    userAvatar,
+    showProfilePopup,
+    profilePopupMode,
+    phoneCodeCountdown,
+    profilePhoneSendError,
+    profileCodeSendError,
+    nicknameDisplay,
+    phoneDisplay,
+    avatarDisplaySrc,
+    canSendProfileCode,
+    init,
+    dispose,
+    openNicknamePopup,
+    openPhonePopup,
+    openAvatarPopup,
+    onClearProfilePhoneSendError,
+    onClearProfileCodeSendError,
+    onSaveNickname,
+    onSendProfilePhoneCode,
+    onSavePhone,
+    onSaveAvatar,
+    onTap,
+    onLogoutTap,
+  } = useSetting({ defaultAvatar: defaultAvatarImg })
 
-  /** 用户信息区点击 */
-  function onUserTap() {
-    onTap('用户资料')
-  }
+  onShow(() => {
+    void init()
+  })
+
+  onUnmounted(() => {
+    dispose()
+  })
 </script>
 
 <style lang="scss" scoped>
@@ -77,7 +133,7 @@
   .settings-page {
     min-height: 100vh;
     box-sizing: border-box;
-    padding: $spacing-md $spacing-lg;
+    padding: $spacing-lg;
     padding-bottom: calc($spacing-xl + env(safe-area-inset-bottom));
     background-color: $bg-secondary;
   }
@@ -96,7 +152,9 @@
     box-sizing: border-box;
   }
 
-  .user-card__left {
+  .user-card__main {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -113,37 +171,53 @@
   }
 
   .user-card__text {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: $spacing-xs;
   }
 
+  .user-card__name-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+  }
+
   .user-card__name {
-    font-size: $font-md;
-    font-weight: 600;
+    font-size: $font-base;
     color: $text-primary;
   }
 
-  /* 会员角标：使用主题语义色，避免硬编码 */
+  .user-card__phone {
+    font-size: $font-sm;
+    color: $text-tertiary;
+  }
+
   .user-card__badge {
-    align-self: flex-start;
     padding: 4rpx $spacing-sm;
     border-radius: $radius-xs;
-    background-color: $fill-tag-active-soft;
+    background-color: rgba($info, $alpha-20);
   }
 
   .user-card__badge-text {
     font-size: $font-xs;
-    color: $caution;
+    color: $warning;
   }
 
-  .user-card__arrow {
-    width: 32rpx;
-    height: 32rpx;
-    opacity: 0.45;
-    /* 资源朝左，水平翻转后指向右侧 */
-    transform: scaleX(-1);
+  .user-card__logout {
+    flex-shrink: 0;
+    padding: $spacing-sm;
+    margin: (-$spacing-sm) (-$spacing-sm) (-$spacing-sm) $spacing-xs;
+  }
+
+  .user-card__logout-icon {
+    width: 48rpx;
+    height: 48rpx;
+    display: block;
   }
 
   /* 设置分组内分割线 */

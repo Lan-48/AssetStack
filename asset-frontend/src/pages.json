@@ -1,6 +1,15 @@
 {
   "pages": [
     {
+      "path": "pages/login/login-page",
+      "style": {
+        "navigationStyle": "default",
+        "navigationBarTitleText": "登录",
+        "navigationBarTextStyle": "black",
+        "navigationBarBackgroundColor": "#ffffff"
+      }
+    },
+    {
       "path": "pages/asset/list/asset-list-page",
       "style": {
         "disableScroll": true,
