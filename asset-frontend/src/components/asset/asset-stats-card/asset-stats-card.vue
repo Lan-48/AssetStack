@@ -1,7 +1,7 @@
 <!--
   组件名称：AssetStatsCard
 
-  组件描述：资产统计卡片，展示标题与数量、状态/排序下拉筛选，以及左右两列金额类指标。
+  组件描述：资产统计卡片，展示标题与数量、状态/排序下拉筛选，以及左右两列金额类指标；状态筛选默认「在用」。
 
   组件参数说明：
   - title: 卡片主标题，默认「我的资产」
@@ -79,27 +79,27 @@
     leftLabel: '总资产',
     leftValue: 0,
     rightLabel: '总日均',
-    rightValue: 0,
+    rightValue: 0
   })
 
   const emit = defineEmits<AssetStatsCardEmits>()
 
   defineOptions({ name: 'AssetStatsCard' })
 
-  /** 状态下拉选项（与资产状态字段文案一致） */
-  const statusOptions = ['在用', '退役', '预购入', '闲置'].map((label) => ({
+  /** 状态下拉选项：首项「全部」展示全部状态；其余与资产状态字段文案一致 */
+  const statusOptions = ['全部', '在用', '退役', '预购入', '闲置'].map((label) => ({
     label,
-    value: label,
+    value: label
   }))
 
   /** 排序下拉选项 */
   const sortOptions = ['天数', '日均', '金额'].map((label) => ({
     label,
-    value: label,
+    value: label
   }))
 
-  /** 当前选中的状态筛选值（由 Dropdown v-model 双向绑定） */
-  const statusValue = ref('')
+  /** 当前选中的状态筛选值（由 Dropdown v-model 双向绑定），默认「在用」与列表页一致 */
+  const statusValue = ref('在用')
   /** 当前选中的排序方式（由 Dropdown v-model 双向绑定） */
   const sortValue = ref('')
 
@@ -110,14 +110,14 @@
   function handleFilterChange(type: string, value: string) {
     emit('filter-change', {
       type,
-      value,
+      value
     })
   }
 </script>
 
 <style scoped lang="scss">
-@use '@/styles/theme/base/base.scss' as *;
-@use '@/styles/theme/themes/default.scss' as *;
+  @use '@/styles/theme/base/base.scss' as *;
+  @use '@/styles/theme/themes/default.scss' as *;
 
   .stats-card {
     background-color: $bg-primary;

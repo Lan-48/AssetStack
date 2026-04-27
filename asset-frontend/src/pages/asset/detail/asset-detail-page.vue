@@ -25,7 +25,10 @@
 
       <view class="asset-hero">
         <view class="asset-hero__image-wrap">
-          <view class="image-placeholder">
+          <view v-if="heroImageUrl" class="image-placeholder image-placeholder--photo">
+            <image class="image-placeholder__photo" :src="heroImageUrl" mode="aspectFill" />
+          </view>
+          <view v-else class="image-placeholder">
             <image class="image-placeholder__icon" :src="cameraIcon" mode="aspectFit" />
           </view>
         </view>
@@ -86,6 +89,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { deleteAsset, fetchAssetDetail, updateAsset } from '@/api'
 import AssetFormPopup from '@/components/asset/asset-form-popup/asset-form-popup.vue'
 import cameraIcon from '@/assets/icons/camera.png'
+import { isRemoteAvatarUrl } from '@/utils/upload-avatar'
 import deleteIcon from '@/assets/icons/delete.png'
 import editIcon from '@/assets/icons/edit.png'
 
@@ -109,6 +113,11 @@ const statusClass = computed(() => {
 })
 
 const remarkText = computed(() => String(detail.value.description ?? '').trim())
+
+const heroImageUrl = computed(() => {
+  const raw = String(detail.value.imageUrl ?? '').trim()
+  return raw && isRemoteAvatarUrl(raw) ? raw : ''
+})
 
 onLoad((query) => {
   const id = String(query?.id || '')
@@ -165,22 +174,32 @@ async function onEditSubmit(payload) {
   if (submittingEdit.value || !assetId.value) return
   submittingEdit.value = true
 
+  const cover = (payload.imageUrl ?? '').trim()
+  const warranty = (payload.warrantyDate ?? '').trim()
   const requestPayload = {
     name: payload.name,
     category: payload.category,
+    categoryId: payload.categoryId ?? null,
     price: payload.price,
     purchaseDate: payload.purchaseDate,
-    warrantyDate: payload.warrantyDate,
+    warrantyDate: warranty === '' ? null : warranty,
     status: payload.status,
     description: payload.description,
+    imageUrl: cover === '' ? null : cover,
   }
 
   try {
-    await updateAsset(assetId.value, requestPayload)
+    const response = await updateAsset(assetId.value, requestPayload)
     showEditPopup.value = false
     uni.showToast({ title: '更新成功', icon: 'success' })
     uni.$emit('asset:changed')
-    await loadDetail()
+    // 更新接口已返回与详情一致的 data，直接写入即可，避免多一次 GET 与整页 loading 闪烁
+    const next = response?.data
+    if (next != null && typeof next === 'object') {
+      detail.value = next
+    } else {
+      await loadDetail()
+    }
   } catch (error) {
     console.error('更新资产失败:', error)
     uni.showToast({ title: '更新失败，请稍后重试', icon: 'none' })
@@ -348,6 +367,17 @@ async function confirmDeleteAsset() {
 .image-placeholder__icon {
   width: 96rpx;
   height: 96rpx;
+}
+
+.image-placeholder--photo {
+  padding: 0;
+  overflow: hidden;
+}
+
+.image-placeholder__photo {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .ticket-divider {

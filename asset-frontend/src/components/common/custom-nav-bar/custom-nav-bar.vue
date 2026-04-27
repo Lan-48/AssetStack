@@ -4,7 +4,7 @@
   组件描述：页面顶部自定义导航条，左侧菜单、中部搜索入口、右侧圆形用户头像；右侧点击后仍会抛出 setting-click 并跳转设置页。
 
   组件参数说明：
-  - 无: 暂无对外 props，头像资源为 @/assets/images/avatar.jpg（import 绑定）
+  - avatarSrc: 头像地址（可选；未传或为空时使用默认占位图 @/assets/images/avatar.jpg）
 
   组件事件说明：
   - menu-click: 点击左侧菜单区域时触发
@@ -13,6 +13,7 @@
 
   组件使用示例：
   <CustomNavBar
+    :avatar-src="userAvatarUrl"
     @menu-click="onMenu"
     @search-click="onSearch"
     @setting-click="onSetting"
@@ -34,18 +35,32 @@
     </view>
 
     <view class="nav-right" @click="onSettingClick">
-      <image class="avatar-img" :src="avatarImg" mode="aspectFill" />
+      <image class="avatar-img" :src="displayAvatarSrc" mode="aspectFill" />
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-  import avatarImg from '@/assets/images/avatar.jpg'
+  import { computed } from 'vue'
+  import defaultAvatarImg from '@/assets/images/avatar.jpg'
   import type { CustomNavBarEmits } from './types'
+
+  const props = withDefaults(
+    defineProps<{
+      /** 用户头像 URL；空则显示默认图 */
+      avatarSrc?: string
+    }>(),
+    { avatarSrc: '' },
+  )
 
   const emit = defineEmits<CustomNavBarEmits>()
 
   defineOptions({ name: 'CustomNavBar' })
+
+  const displayAvatarSrc = computed(() => {
+    const raw = props.avatarSrc?.trim() ?? ''
+    return raw ? raw : defaultAvatarImg
+  })
 
   function onMenuClick() {
     emit('menu-click')

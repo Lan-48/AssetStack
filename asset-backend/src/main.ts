@@ -12,7 +12,12 @@ async function bootstrap() {
   const corsOrigin = config.get<string>('CORS_ORIGIN', 'http://localhost:5173');
 
   app.setGlobalPrefix('api');
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      /** 启用 class-transformer，使 @Type、@Transform 对请求体生效 */
+      transform: true,
+    }),
+  );
 
   // 👇 新增：启用 CORS（解决跨域问题）
   app.enableCors({

@@ -42,20 +42,47 @@
       </view>
 
       <view class="image-placeholder-wrap">
-        <view class="image-placeholder">
-          <image class="image-placeholder__icon" :src="cameraIcon" mode="aspectFit" />
-        </view>
+        <FileUploader
+          v-model="coverFileList"
+          class="asset-form-cover-uploader"
+          :multiple="false"
+          :max-count="1"
+          preview-size="180rpx"
+          :max-size="5 * 1024 * 1024"
+          :deletable="true"
+          upload-text=""
+          @after-read="onCoverAfterRead"
+          @oversize="onCoverOversize"
+        >
+          <template #upload="{ onChoose }">
+            <view class="image-placeholder" @tap.stop="onChoose" @click.stop="onChoose">
+              <image class="image-placeholder__icon" :src="cameraIcon" mode="aspectFit" />
+            </view>
+          </template>
+          <template #preview="{ file, onPreview, onDelete, canDelete }">
+            <view class="image-placeholder image-placeholder--preview">
+              <image class="image-placeholder__cover" :src="file.url" mode="aspectFill" @tap="onPreview" />
+              <view v-if="file.status && file.status !== 'done'" class="image-placeholder__mask">
+                <text class="image-placeholder__mask-text">{{ file.message || file.status }}</text>
+              </view>
+              <view v-if="canDelete" class="image-placeholder__delete" @tap.stop="onDelete">
+                <text class="image-placeholder__delete-text">×</text>
+              </view>
+            </view>
+          </template>
+        </FileUploader>
       </view>
 
       <view class="category-dropdown-wrap">
         <Dropdown
-          v-model="form.category"
+          :model-value="form.categoryId ?? undefined"
           title="分类"
-          :options="categoryDropdownOptions"
-          :support-submenu="false"
+          :options="formCategoryOptions"
+          placeholder="请选择分类"
           variant="toolbar"
           width="300rpx"
           max-height="320px"
+          @update:model-value="onCategoryDropdownValue"
         />
       </view>
 
@@ -119,11 +146,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import Popup from '@/components/common/popup/popup.vue'
 import Dropdown from '@/components/common/dropdown/dropdown.vue'
+import FileUploader from '@/components/common/file-uploader/file-uploader.vue'
+import type { FileUploaderItem } from '@/components/common/file-uploader'
+import type { AssetToolbarCategoryOption } from '@/components/asset/asset-toolbar/types'
 import cameraIcon from '@/assets/icons/camera.png'
 import checkIcon from '@/assets/icons/check.png'
+import { fetchCategoryTree, getOssReadUrl, type AssetCategoryTreeNode } from '@/api'
+import { isRemoteAvatarUrl, uploadAvatarFile } from '@/utils/upload-avatar'
 import type { AssetFormPopupEmits, AssetFormPopupProps, AssetFormSubmitPayload } from './types'
 
 const props = withDefaults(defineProps<AssetFormPopupProps>(), {
@@ -137,45 +169,229 @@ const emit = defineEmits<AssetFormPopupEmits>()
 
 defineOptions({ name: 'AssetFormPopup' })
 
-/** 与原先 selector 一致：选中项写入 form.category（提交字段不变） */
-const categoryDropdownOptions = [
-  { label: '数码产品', value: '数码产品' },
-  { label: '家用电器', value: '家用电器' },
-  { label: '办公设备', value: '办公设备' },
-  { label: '其他', value: '其他' },
-]
 const statusOptions = ['在用', '退役', '预购入', '闲置']
 const today = new Date().toISOString().slice(0, 10)
+
+const categoryTree = ref<AssetCategoryTreeNode[]>([])
 
 const form = reactive<AssetFormSubmitPayload>({
   name: '',
   category: '',
+  categoryId: null,
   price: '',
   purchaseDate: '',
   warrantyDate: '',
   status: '在用',
   description: '',
+  imageUrl: '',
 })
+
+const formCategoryOptions = computed((): AssetToolbarCategoryOption[] =>
+  treeToFormOptions(categoryTree.value),
+)
+
+function treeToFormOptions(tree: AssetCategoryTreeNode[]): AssetToolbarCategoryOption[] {
+  const out: AssetToolbarCategoryOption[] = []
+  for (const n of tree) {
+    const children = (n.children ?? []).map((c) => ({ label: c.name, value: c.id }))
+    out.push({ label: n.name, value: n.id, children })
+  }
+  return out
+}
+
+function findNodeInTree(tree: AssetCategoryTreeNode[], id: number): AssetCategoryTreeNode | null {
+  for (const n of tree) {
+    if (n.id === id) return n
+    for (const c of n.children ?? []) {
+      if (c.id === id) return c
+    }
+  }
+  return null
+}
+
+function findNodeByName(tree: AssetCategoryTreeNode[], name: string): AssetCategoryTreeNode | null {
+  const t = name.trim()
+  if (!t) return null
+  for (const n of tree) {
+    if (n.name === t) return n
+    for (const c of n.children ?? []) {
+      if (c.name === t) return c
+    }
+  }
+  return null
+}
+
+function findDefaultCategory(
+  tree: AssetCategoryTreeNode[]
+): { id: number; name: string } | null {
+  for (const n of tree) {
+    if (Number(n.is_default) === 1) return { id: n.id, name: n.name }
+    for (const c of n.children ?? []) {
+      if (Number(c.is_default) === 1) return { id: c.id, name: c.name }
+    }
+  }
+  return null
+}
+
+function onCategoryDropdownValue(v: string | number | Record<string, unknown> | undefined) {
+  if (v == null || typeof v === 'object') {
+    form.categoryId = null
+    form.category = ''
+    return
+  }
+  const n = Number(v)
+  form.categoryId = Number.isFinite(n) && n > 0 ? n : null
+  syncCategoryLabelFromId()
+}
+
+function getSourceCategoryId(source: Record<string, unknown>): number | null {
+  const v = source.categoryId ?? source.category_id
+  if (v == null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+function syncCategoryLabelFromId() {
+  const id = form.categoryId
+  if (id == null || id === 0) {
+    form.category = ''
+    return
+  }
+  const node = findNodeInTree(categoryTree.value, id)
+  if (node) form.category = node.name
+}
+
+async function loadCategoryTreeForForm() {
+  try {
+    const res = await fetchCategoryTree()
+    const raw = (res as { data?: unknown })?.data
+    const list = Array.isArray(raw) ? (raw as AssetCategoryTreeNode[]) : []
+    categoryTree.value = list
+  } catch (e) {
+    console.error('拉取分类树失败:', e)
+    categoryTree.value = []
+  }
+}
+
+/** 封面图列表（与登录注册页一致，由通用上传组件管理，选图后走实际上传接口） */
+const coverFileList = ref<FileUploaderItem[]>([])
+
+watch(
+  coverFileList,
+  (list) => {
+    if (!list.length) form.imageUrl = ''
+  },
+  { deep: true },
+)
 
 const titleText = computed(() => (props.mode === 'edit' ? '编辑资产' : '新增资产'))
 
 watch(
   () => props.show,
-  (visible) => {
+  async (visible) => {
     if (!visible) return
-    syncFormFromModel(props.modelValue || {})
+    await loadCategoryTreeForForm()
+    await syncFormFromModel((props.modelValue || {}) as Partial<AssetFormSubmitPayload> & Record<string, unknown>)
+    if (form.categoryId == null && props.mode === 'edit' && form.category.trim()) {
+      const node = findNodeByName(categoryTree.value, form.category)
+      if (node) {
+        form.categoryId = node.id
+        form.category = node.name
+      }
+    }
+    if (props.mode === 'create' && form.categoryId == null && !form.category.trim()) {
+      const d = findDefaultCategory(categoryTree.value)
+      if (d) {
+        form.categoryId = d.id
+        form.category = d.name
+      }
+    } else {
+      syncCategoryLabelFromId()
+    }
   },
   { immediate: true },
 )
 
-function syncFormFromModel(source: Partial<AssetFormSubmitPayload>) {
+watch(categoryTree, () => {
+  if (form.categoryId != null) syncCategoryLabelFromId()
+})
+
+async function syncFormFromModel(
+  source: Partial<AssetFormSubmitPayload> & Record<string, unknown>
+) {
+  const src = source
   form.name = source.name ? String(source.name) : ''
   form.category = source.category ? String(source.category) : ''
+  form.categoryId = getSourceCategoryId(src)
   form.price = source.price ? String(source.price) : ''
   form.purchaseDate = normalizeDate(source.purchaseDate)
   form.warrantyDate = normalizeDate(source.warrantyDate)
   form.status = source.status ? String(source.status) : '在用'
   form.description = source.description ? String(source.description) : ''
+  const rawImg = source.imageUrl ? String(source.imageUrl).trim() : ''
+  if (!rawImg || !isRemoteAvatarUrl(rawImg)) {
+    form.imageUrl = ''
+    coverFileList.value = []
+    return
+  }
+  form.imageUrl = rawImg
+  let coverUrl = rawImg
+  if (/^avatars\//i.test(rawImg) && !/^https?:\/\//i.test(rawImg)) {
+    try {
+      const res = await getOssReadUrl(rawImg, { showErrorToast: false })
+      const u = res?.data?.url
+      if (typeof u === 'string' && u.trim()) coverUrl = u.trim()
+    } catch {
+      /* 换签失败时封面可能为空，提交仍携带 object key */
+    }
+  }
+  coverFileList.value = [{ url: coverUrl, status: 'done', isImage: true }]
+}
+
+async function onCoverAfterRead(payload: FileUploaderItem | FileUploaderItem[]) {
+  const files = Array.isArray(payload) ? payload : [payload]
+  const file = files[0]
+  if (!file) return
+
+  if (isRemoteAvatarUrl(file.url)) {
+    const u = file.url.trim()
+    form.imageUrl = u
+    let coverUrl = u
+    if (/^avatars\//i.test(u) && !/^https?:\/\//i.test(u)) {
+      try {
+        const res = await getOssReadUrl(u, { showErrorToast: false })
+        const signed = res?.data?.url
+        if (typeof signed === 'string' && signed.trim()) coverUrl = signed.trim()
+      } catch {
+        /* 同上 */
+      }
+    }
+    coverFileList.value = [{ url: coverUrl, status: 'done', isImage: true }]
+    return
+  }
+
+  const localPath = file.url
+  const patchList = (patch: Partial<FileUploaderItem>) => {
+    const list = [...coverFileList.value]
+    const i = list.findIndex((f) => f.url === localPath)
+    if (i >= 0) list[i] = { ...list[i], ...patch }
+    coverFileList.value = list
+  }
+
+  patchList({ status: 'uploading', message: '上传中' })
+
+  try {
+    const { key, url } = await uploadAvatarFile(localPath)
+    form.imageUrl = key
+    coverFileList.value = [{ url, name: file.name, isImage: true, status: 'done' }]
+  } catch {
+    patchList({ status: 'failed', message: '上传失败' })
+    uni.showToast({ title: '图片上传失败', icon: 'none' })
+  }
+}
+
+function onCoverOversize() {
+  uni.showToast({ title: '图片需小于 5MB', icon: 'none' })
 }
 
 function normalizeDate(value?: string) {
@@ -196,6 +412,15 @@ function handleCancel() {
 
 function handleSubmit() {
   if (props.submitting) return
+  const cover = coverFileList.value[0]
+  if (cover?.status === 'uploading') {
+    uni.showToast({ title: '图片上传中，请稍候', icon: 'none' })
+    return
+  }
+  if (cover?.status === 'failed') {
+    uni.showToast({ title: '图片上传失败，请删除后重选', icon: 'none' })
+    return
+  }
   if (!form.name.trim()) {
     uni.showToast({ title: '请输入资产名称', icon: 'none' })
     return
@@ -204,7 +429,12 @@ function handleSubmit() {
     uni.showToast({ title: '请输入购入价格', icon: 'none' })
     return
   }
-  // 组件层只负责收集与校验输入，不直接调接口；由父层决定 create / update。
+  if (form.categoryId == null || form.categoryId === 0) {
+    uni.showToast({ title: '请选择分类', icon: 'none' })
+    return
+  }
+  syncCategoryLabelFromId()
+  // 组件层只负责收集与校验输入，不直接调资产保存接口；由父层决定 create / update。
   emit('submit', { ...form })
 }
 
@@ -296,6 +526,66 @@ function onWarrantyDateChange(event: { detail?: { value?: string } }) {
 .image-placeholder__icon {
   width: 72rpx;
   height: 72rpx;
+}
+
+.image-placeholder--preview {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.image-placeholder__cover {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.image-placeholder__mask {
+  position: absolute;
+  inset: 0;
+  background-color: $overlay-40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 $spacing-sm;
+  box-sizing: border-box;
+}
+
+.image-placeholder__mask-text {
+  color: $text-white;
+  font-size: $font-xs;
+  text-align: center;
+}
+
+.image-placeholder__delete {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 36rpx;
+  height: 36rpx;
+  background-color: $overlay-50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom-left-radius: $radius-xs;
+}
+
+.image-placeholder__delete-text {
+  color: $text-white;
+  font-size: $font-xs;
+  line-height: 1;
+}
+
+.asset-form-cover-uploader {
+  width: auto;
+}
+
+.asset-form-cover-uploader :deep(.file-uploader__list) {
+  justify-content: center;
+}
+
+.asset-form-cover-uploader :deep(.file-uploader__item) {
+  margin: 0;
 }
 
 .category-dropdown-wrap {

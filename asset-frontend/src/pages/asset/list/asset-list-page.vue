@@ -24,6 +24,8 @@
           <AssetToolbar
             v-if="viewMode"
             v-model:viewMode="viewMode"
+            v-model:category-filter-id="filterCategoryId"
+            :options="categoryDropdownOptions"
             @sort-change="onSortChange"
             @filter-category-change="onCategoryFilterChange"
           />
@@ -38,7 +40,6 @@
                 :assets="sortedAndFilteredAssets"
                 :view-mode="viewMode"
                 :filter-status="filterStatus"
-                :filter-category="filterCategory"
               />
               <!-- 列表为空时的说明（无数据 vs 筛选无结果） -->
               <view v-if="sortedAndFilteredAssets.length === 0" class="empty-tip">
@@ -52,29 +53,52 @@
   </Layout>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { fetchAssetList } from '@/api'
+import { fetchAssetList, fetchCategoryTree, type AssetCategoryTreeNode } from '@/api'
+import type {
+  AssetToolbarCategoryOption,
+  AssetToolbarViewMode,
+  CategoryFilterPayload
+} from '@/components/asset/asset-toolbar/types'
 import Layout from '@/components/layout/layout.vue'
 import AssetStatsCard from '@/components/asset/asset-stats-card/asset-stats-card.vue'
 import AssetToolbar from '@/components/asset/asset-toolbar/asset-toolbar.vue'
 import AssetList from '@/components/asset/asset-list/asset-list.vue'
 import { calculateDaysToNow } from '@/utils/date-utils'
 
-const assets = ref([])
+type AssetRow = Record<string, unknown> & {
+  id?: string | number
+  name?: string
+  price?: string | number
+  status?: string
+  category?: string
+  purchaseDate?: string
+  categoryId?: number | null
+  category_id?: number | null
+}
+
+const assets = ref<AssetRow[]>([])
 const loading = ref(true)
 const loadError = ref(false)
+
+/** GET /asset-categories/tree，供工具栏下拉与筛选用 */
+const categoryTree = ref<AssetCategoryTreeNode[]>([])
+/** 与 AssetToolbar v-model:category-filter-id 同步；0 为全部 */
+const filterCategoryId = ref(0)
+/** 当前分类筛选项（id + 展示名），与工具栏 change 一致 */
+const activeCategoryFilter = ref<CategoryFilterPayload>({ value: 0, label: '全部' })
 
 const loadAssets = async () => {
   loadError.value = false
   loading.value = true
   try {
-    const response = await fetchAssetList()
+    const response = (await fetchAssetList()) as { data?: { list?: unknown } }
     // 打印后端返回的完整数据结构（联调时可对照字段）
     console.log('后端返回的完整数据:', response)
     const list = response?.data?.list
-    assets.value = Array.isArray(list) ? list : []
+    assets.value = Array.isArray(list) ? (list as AssetRow[]) : []
   } catch (error) {
     console.error('获取资产失败:', error)
     loadError.value = true
@@ -84,9 +108,109 @@ const loadAssets = async () => {
   }
 }
 
-// 每次页面显示时拉取列表（从详情返回等场景会再次触发）
+async function loadCategoryTree() {
+  try {
+    const res = await fetchCategoryTree()
+    const raw = (res as { data?: unknown })?.data
+    const list = Array.isArray(raw) ? (raw as AssetCategoryTreeNode[]) : []
+    categoryTree.value = list
+    filterCategoryId.value = 0
+    activeCategoryFilter.value = { value: 0, label: '全部' }
+  } catch (e) {
+    console.error('拉取分类树失败:', e)
+  }
+}
+
+function treeToToolbarOptions(tree: AssetCategoryTreeNode[]): AssetToolbarCategoryOption[] {
+  const out: AssetToolbarCategoryOption[] = [{ label: '全部', value: 0, children: [] }]
+  for (const n of tree) {
+    const children = (n.children ?? []).map((c) => ({ label: c.name, value: c.id }))
+    out.push({ label: n.name, value: n.id, children })
+  }
+  return out
+}
+
+function findNodeInTree(tree: AssetCategoryTreeNode[], id: number): AssetCategoryTreeNode | null {
+  for (const n of tree) {
+    if (n.id === id) return n
+    for (const c of n.children ?? []) {
+      if (c.id === id) return c
+    }
+  }
+  return null
+}
+
+function collectDescendantIdsAndLabels(node: AssetCategoryTreeNode): {
+  ids: Set<number>
+  labels: Set<string>
+} {
+  const ids = new Set<number>([node.id])
+  const labels = new Set<string>([node.name])
+  for (const ch of node.children ?? []) {
+    ids.add(ch.id)
+    labels.add(ch.name)
+  }
+  return { ids, labels }
+}
+
+function findDefaultCategory(
+  tree: AssetCategoryTreeNode[]
+): { id: number; name: string } | null {
+  for (const n of tree) {
+    if (Number(n.is_default) === 1) return { id: n.id, name: n.name }
+    for (const c of n.children ?? []) {
+      if (Number(c.is_default) === 1) return { id: c.id, name: c.name }
+    }
+  }
+  return null
+}
+
+function getRowCategoryId(asset: Record<string, unknown>): number | null {
+  const v = asset.categoryId ?? asset.category_id
+  if (v == null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+function isUnboundLegacyForDefault(
+  asset: Record<string, unknown>,
+  defaultName: string
+): boolean {
+  if (getRowCategoryId(asset) != null) return false
+  const t = String(asset.category ?? '').trim()
+  return t === '' || t === defaultName
+}
+
+/**
+ * 分类筛选：支持 categoryId 与一级带子级；已绑定 id 的走 id；仅文案走名称集合。
+ * 默认分类（is_default=1）同时纳入「无 category_id 的旧数据」以与产品「未设即默认」一致。
+ */
+function matchAssetCategory(
+  asset: Record<string, unknown>,
+  filter: CategoryFilterPayload,
+  tree: AssetCategoryTreeNode[],
+  defaultMeta: { id: number; name: string } | null
+): boolean {
+  if (filter.value === 0) return true
+  const cid = getRowCategoryId(asset)
+  const label = String(asset.category ?? '').trim()
+  if (defaultMeta && filter.value === defaultMeta.id) {
+    if (cid != null) return cid === defaultMeta.id
+    return isUnboundLegacyForDefault(asset, defaultMeta.name) || label === defaultMeta.name
+  }
+  const node = findNodeInTree(tree, filter.value)
+  if (!node) {
+    return label === filter.label
+  }
+  const { ids, labels } = collectDescendantIdsAndLabels(node)
+  if (cid != null) return ids.has(cid)
+  return labels.has(label) || label === node.name
+}
+
+// 每次页面显示时拉取分类树与资产列表（从详情返回等会再次触发）
 onShow(() => {
-  loadAssets()
+  void loadCategoryTree()
+  void loadAssets()
 })
 
 /** 与 AppLayout 中加号提交的 uni.$emit('asset:changed') 联动；便于控制台对照弹窗与列表刷新时序 */
@@ -109,25 +233,40 @@ onUnmounted(() => {
 const computedAssets = computed(() => {
   return assets.value.map((asset) => ({
     ...asset,
-    days: calculateDaysToNow(asset.purchaseDate),
+    days: asset.purchaseDate
+      ? calculateDaysToNow(String(asset.purchaseDate))
+      : 0,
   }))
 })
 
-// 筛选条件：状态来自统计卡片；分类来自工具栏下拉
-const filterStatus = ref('全部')
-const filterCategory = ref('全部')
+// 筛选条件：状态来自统计卡片；分类来自工具栏下拉（与分类表 id / 子树联动）
+const filterStatus = ref('在用')
+
+const defaultCategoryInfo = computed(() => findDefaultCategory(categoryTree.value))
+
+const categoryDropdownOptions = computed((): AssetToolbarCategoryOption[] =>
+  treeToToolbarOptions(categoryTree.value)
+)
 
 // 视图模式：列表 / 宫格
-const viewMode = ref('list')
+const viewMode = ref<AssetToolbarViewMode>('list')
 
 // 排序：name | amount | days | dailyAvg（与统计卡片「排序」下拉的「天数 / 金额 / 日均」对应）
-const sortType = ref('name')
+const sortType = ref<'name' | 'amount' | 'days' | 'dailyAvg'>('name')
 
 // 仅筛选（不含排序），用于金额统计与卡片 count，避免排序影响汇总口径
 const filteredAssets = computed(() => {
+  const tree = categoryTree.value
+  const filter = activeCategoryFilter.value
+  const def = defaultCategoryInfo.value
   return computedAssets.value.filter((asset) => {
     const statusMatch = filterStatus.value === '全部' || asset.status === filterStatus.value
-    const categoryMatch = filterCategory.value === '全部' || asset.category === filterCategory.value
+    const categoryMatch = matchAssetCategory(
+      asset as unknown as Record<string, unknown>,
+      filter,
+      tree,
+      def
+    )
     return statusMatch && categoryMatch
   })
 })
@@ -137,16 +276,17 @@ const sortedAndFilteredAssets = computed(() => {
   const list = [...filteredAssets.value]
   list.sort((a, b) => {
     if (sortType.value === 'name') {
-      return a.name.localeCompare(b.name)
+      return String(a.name ?? '').localeCompare(String(b.name ?? ''))
     }
     if (sortType.value === 'amount') {
-      return parseFloat(b.price) - parseFloat(a.price)
+      return parseFloat(String(b.price ?? 0)) - parseFloat(String(a.price ?? 0))
     }
     if (sortType.value === 'days') {
       return b.days - a.days
     }
     if (sortType.value === 'dailyAvg') {
-      const da = (x) => (x.days > 0 ? parseFloat(x.price) / x.days : 0)
+      const da = (x: (typeof list)[number]) =>
+        x.days > 0 ? parseFloat(String(x.price)) / x.days : 0
       return da(b) - da(a)
     }
     return 0
@@ -178,29 +318,31 @@ const dailyAvg = computed(() => {
  * - 状态：同步 filterStatus
  * - 排序：同步 sortType（下拉文案 天数/金额/日均 → 内部 key）
  */
-const onFilterChange = ({ type, value }) => {
+const onFilterChange = ({ type, value }: { type: string; value: string }) => {
   if (type === '状态') {
-    filterStatus.value = value || '全部'
+    filterStatus.value = value || '在用'
     return
   }
   if (type === '排序') {
-    const sortMap = {
+    const sortMap: Record<string, 'days' | 'amount' | 'dailyAvg'> = {
       天数: 'days',
       金额: 'amount',
-      日均: 'dailyAvg',
+      日均: 'dailyAvg'
     }
-    sortType.value = sortMap[value] ?? 'name'
+    const next = value ? sortMap[value] : undefined
+    sortType.value = (next ?? 'name') as 'name' | 'amount' | 'days' | 'dailyAvg'
   }
 }
 
 // 工具栏预留的 sort-change（当前 UI 未绑定时可忽略）
-const onSortChange = (type) => {
-  if (type) sortType.value = type
+const onSortChange = (type: 'name' | 'amount' | 'days' | 'dailyAvg') => {
+  sortType.value = type
 }
 
-// 工具栏分类下拉：将选中项 label 同步为列表的 category 筛选
-const onCategoryFilterChange = (label) => {
-  filterCategory.value = label || '全部'
+/** 工具栏分类：同步 id + 文案，供 matchAssetCategory 使用 */
+const onCategoryFilterChange = (payload: CategoryFilterPayload) => {
+  activeCategoryFilter.value = payload
+  filterCategoryId.value = payload.value
 }
 </script>
 

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AssetModule } from './asset/asset.module';
+import { AssetCategoryModule } from './asset-category/asset-category.module';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
@@ -24,6 +25,7 @@ import { AuthModule } from './auth/auth.module';
       }),
     }),
     AssetModule,
+    AssetCategoryModule,
     AuthModule,
   ],
 })
