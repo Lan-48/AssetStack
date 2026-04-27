@@ -11,6 +11,7 @@ import { Repository } from 'typeorm';
 import { User } from '../user/user.entity';
 import { AUTH_ERROR_CODE } from './auth-error-codes';
 import { SendCodePurpose } from './dto/send-code.dto';
+import { OssService } from '../../oss/oss.service';
 
 interface CodeRecord {
   code: string;
@@ -38,6 +39,7 @@ export class LoginService {
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly ossService: OssService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {
@@ -160,7 +162,7 @@ export class LoginService {
     return {
       token,
       isNewUser,
-      userInfo: this.toUserInfo(user),
+      userInfo: await this.toUserInfoWithSignedAvatar(user),
     };
   }
 
@@ -199,13 +201,26 @@ export class LoginService {
     return phone;
   }
 
+  /** 供资产等模块按 token 解析当前用户主键（字符串形式，与 bigint 列一致） */
+  async getUserIdByToken(token: string): Promise<string> {
+    const phone = this.getPhoneFromToken(token);
+    const user = await this.userRepository.findOne({
+      where: { phone },
+      select: { id: true },
+    });
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+    return String(user.id);
+  }
+
   async getUserInfoByToken(token: string) {
     const phone = this.getPhoneFromToken(token);
     const user = await this.userRepository.findOne({ where: { phone } });
     if (!user) {
       throw new UnauthorizedException('用户不存在');
     }
-    return this.toUserInfo(user);
+    return await this.toUserInfoWithSignedAvatar(user);
   }
 
   async updateUserInfoByToken(
@@ -242,7 +257,8 @@ export class LoginService {
     }
 
     if (hasAvatar) {
-      user.avatar = payload.avatar!.trim();
+      const rawAv = payload.avatar!.trim();
+      user.avatar = this.ossService.normalizeToObjectKey(rawAv) ?? rawAv;
     }
 
     let refreshedToken = '';
@@ -302,6 +318,13 @@ export class LoginService {
       avatar: user.avatar ?? '',
       createTime: this.formatDateTime(user.createTime),
     };
+  }
+
+  /** 头像在库中为 object key，对外始终返回带时效的读签名 URL（无 OSS 配置时原样返回） */
+  private async toUserInfoWithSignedAvatar(user: User) {
+    const base = this.toUserInfo(user);
+    base.avatar = await this.ossService.signImageUrlForRead(user.avatar ?? '');
+    return base;
   }
 
   private formatDateTime(date?: Date | string) {

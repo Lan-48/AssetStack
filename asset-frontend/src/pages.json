@@ -39,6 +39,12 @@
         "navigationBarTextStyle": "black",
         "navigationBarBackgroundColor": "#ffffff"
       }
+    },
+    {
+      "path": "pages/setting/category-manage-page",
+      "style": {
+        "navigationStyle": "custom"
+      }
     }
   ],
   "easycom": {

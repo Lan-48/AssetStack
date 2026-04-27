@@ -1,20 +1,19 @@
 <!--
   页面名称：设置页
 
-  页面描述：展示用户信息入口、资产与数据相关设置项；使用原生导航栏（pages.json），与带 Layout 的 Tab 页区分。
+  页面描述：展示用户信息入口、资产与数据相关设置项；使用原生导航栏（pages.json）。
 
   页面说明：
   - 依赖 pages.json 中 navigationStyle: default 与标题「设置」
 
   交互说明：
-  - 各入口点击后目前为轻提示占位，后续可接具体路由或业务弹窗
+  - 「分类管理」跳转分类管理页；其余入口暂为占位日志
 
   入口示例：
-  - 底部 Tab 切换至设置，或 uni.navigateTo({ url: '/pages/setting/setting-page' })
+  - 自定义导航栏头像；或 uni.navigateTo({ url: '/pages/setting/setting-page' })
 -->
 <template>
   <view class="settings-page">
-    <!-- 顶部用户信息卡片：头像 + 昵称/VIP + 手机号；右侧退出 -->
     <view class="user-card">
       <view class="user-card__main">
         <image
@@ -38,21 +37,18 @@
       </view>
     </view>
 
-    <!-- 资产相关 -->
     <SettingsSection>
       <SettingsCell label="资产管理" @tap="onTap('资产管理')" />
       <view class="row-divider" />
       <SettingsCell label="分类管理" @tap="onTap('分类管理')" />
     </SettingsSection>
 
-    <!-- 数据相关 -->
     <SettingsSection>
       <SettingsCell label="数据导入" @tap="onTap('数据导入')" />
       <view class="row-divider" />
       <SettingsCell label="数据导出" @tap="onTap('数据导出')" />
     </SettingsSection>
 
-    <!-- 偏好 -->
     <SettingsSection>
       <SettingsCell label="货币单位切换" @tap="onTap('货币单位切换')" />
     </SettingsSection>
@@ -87,6 +83,8 @@
   import SettingsCell from '@/components/common/settings-cell/settings-cell.vue'
   import SettingsSection from '@/components/common/settings-section/settings-section.vue'
   import { useSetting } from '@/services/pages/setting/use-setting'
+
+  defineOptions({ name: 'SettingPage' })
 
   const {
     userNickname,
@@ -129,16 +127,14 @@
   @use '@/styles/theme/base/base.scss' as *;
   @use '@/styles/theme/themes/default.scss' as *;
 
-  /* 页面底色：与 Layout 内页一致的二级背景 */
   .settings-page {
     min-height: 100vh;
     box-sizing: border-box;
     padding: $spacing-lg;
-    padding-bottom: calc($spacing-xl + env(safe-area-inset-bottom));
+    padding-bottom: calc($spacing-xl + env(safe-area-inset-bottom, 0px));
     background-color: $bg-secondary;
   }
 
-  /* 用户信息卡片：与设置分组卡片视觉层级一致，略增高以容纳头像 */
   .user-card {
     display: flex;
     flex-direction: row;
@@ -220,7 +216,6 @@
     display: block;
   }
 
-  /* 设置分组内分割线 */
   .row-divider {
     width: 100%;
     height: 1px;

@@ -54,9 +54,20 @@ export const loginByPhoneCode = (
 
 export const logout = (token: string) => request.post('/user/logout', {}, { header: { token } })
 
-export const getUserInfo = () => request.get<ApiEnvelope<UserInfo>>('/user/info')
+export const getUserInfo = (requestConfig?: { showErrorToast?: boolean }) =>
+  request.get<ApiEnvelope<UserInfo>>('/user/info', requestConfig)
 
 export const updateUserInfo = (
   payload: UpdateUserInfoPayload,
   requestConfig?: { showErrorToast?: boolean },
 ) => request.put<ApiEnvelope<UpdateUserInfoData>>('/user/update', payload, requestConfig)
+
+/** 私有 Bucket：根据已入库的 object key 换取短时读签名 URL */
+export const getOssReadUrl = (
+  key: string,
+  requestConfig?: { showErrorToast?: boolean },
+) =>
+  request.get<ApiEnvelope<{ url: string }>>('/user/oss-read-url', {
+    ...requestConfig,
+    params: { key },
+  })

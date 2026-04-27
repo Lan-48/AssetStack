@@ -6,6 +6,7 @@ import {
   normalizeRequestErrorCode,
   normalizeRequestErrorMessage,
 } from '@/services/functions/auth-function'
+import { isRemoteAvatarUrl, uploadAvatarFile } from '@/utils/upload-avatar'
 import { clearToken, getToken, setToken } from '@/utils/auth'
 import type {
   SaveAvatarPayload,
@@ -126,16 +127,12 @@ export function useSetting(options: UseSettingOptions) {
     const nickname = payload.nickname.trim()
     if (!nickname) return
     try {
-      await updateUserInfo(
-        {
-          nickname,
-          avatar: userAvatar.value || '',
-        },
-        { showErrorToast: false },
-      )
+      /** 仅改昵称：不要回传头像。展示用签名 URL 常超过后端 avatar 255 字上限，会触发 400 */
+      await updateUserInfo({ nickname }, { showErrorToast: false })
       userNickname.value = nickname
       uni.showToast({ title: '修改成功', icon: 'success' })
       showProfilePopup.value = false
+      uni.$emit('user:profile-changed')
     } catch (error) {
       console.error('修改昵称失败:', error)
     }
@@ -244,6 +241,7 @@ export function useSetting(options: UseSettingOptions) {
       phoneCodeCountdown.value = 0
       showProfilePopup.value = false
       uni.showToast({ title: '手机号修改成功', icon: 'success' })
+      uni.$emit('user:profile-changed')
     } catch (error) {
       const errorCode = normalizeRequestErrorCode(error)
       const msg = normalizeRequestErrorMessage(error)
@@ -288,23 +286,34 @@ export function useSetting(options: UseSettingOptions) {
   }
 
   async function onSaveAvatar(payload: SaveAvatarPayload) {
+    let avatarUrl = (payload.avatar || '').trim()
     try {
+      if (avatarUrl && !isRemoteAvatarUrl(avatarUrl)) {
+        const up = await uploadAvatarFile(avatarUrl)
+        avatarUrl = up.key
+      }
       await updateUserInfo(
         {
           nickname: userNickname.value || '用户',
-          avatar: payload.avatar || '',
+          avatar: avatarUrl,
         },
         { showErrorToast: false },
       )
-      userAvatar.value = payload.avatar || ''
+      await loadUserProfile()
       uni.showToast({ title: '修改成功', icon: 'success' })
       showProfilePopup.value = false
+      uni.$emit('user:profile-changed')
     } catch (error) {
       console.error('修改头像失败:', error)
+      uni.showToast({ title: '头像上传失败，请重试', icon: 'none' })
     }
   }
 
   function onTap(name: string) {
+    if (name === '分类管理') {
+      uni.navigateTo({ url: '/pages/setting/category-manage-page' })
+      return
+    }
     console.log(`${name} 点击`)
   }
 

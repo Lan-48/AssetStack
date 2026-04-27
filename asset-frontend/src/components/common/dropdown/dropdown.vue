@@ -10,6 +10,7 @@
   - hideArrow: 是否隐藏右侧箭头
   - disabled: 是否禁用点击展开
   - width / maxHeight: 容器宽度与菜单最大高度
+  - radius / radiusSelected / radiusToggle: 圆角（菜单与控件 / 选中项背景 / 触发条；单位如 rpx、px；toolbar 未传 radiusToggle 时触发条默认 40rpx）
   - variant: 外观变体，默认 default；toolbar 用于资产列表工具栏（与 H5/小程序样式一致，勿依赖父级 :deep）
 
   组件事件说明：
@@ -27,7 +28,7 @@
   <view
     class="dropdown-container"
     :class="{ 'dropdown-container--toolbar': variant === 'toolbar' }"
-    :style="{ width: width }"
+    :style="containerStyle"
     ref="dropdownRef"
   >
     <view
@@ -116,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onUnmounted, watch, nextTick, type CSSProperties } from 'vue'
 /** 资源为向左的粗箭头，样式中通过 rotate 得到朝下/朝上 */
 import arrowBoldIcon from '@/assets/icons/arrow-bold.png'
 import arrowRightIcon from '@/assets/icons/arrow-right.png'
@@ -188,12 +189,40 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'default'
+  },
+  /** 菜单、展开触控区等圆角（与主题 $radius-xs 一致） */
+  radius: {
+    type: String,
+    default: '16rpx'
+  },
+  /** 一级 / 二级选中项背景圆角（与主题 $radius-sm 一致） */
+  radiusSelected: {
+    type: String,
+    default: '24rpx'
+  },
+  /** 触发条圆角；不传时与 radius 相同，toolbar 变体未传时为 40rpx（$radius-md） */
+  radiusToggle: {
+    type: String,
+    default: ''
   }
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])
 
 defineOptions({ name: 'CommonDropdown' })
+
+const radiusToggleResolved = computed(() => {
+  if (props.radiusToggle) return props.radiusToggle
+  if (props.variant === 'toolbar') return '40rpx'
+  return props.radius
+})
+
+const containerStyle = computed((): CSSProperties => ({
+  width: props.width,
+  '--dd-radius': props.radius,
+  '--dd-radius-selected': props.radiusSelected,
+  '--dd-radius-toggle': radiusToggleResolved.value
+}))
 
 // 状态管理
 const isOpen = ref(false)
@@ -211,14 +240,13 @@ watch(() => props.modelValue, (newVal) => {
   }
 }, { immediate: true })
 
-// 显示文本计算
+// 显示文本计算（0 为合法选中值，勿用 !modelValue 判断）
 const displayText = computed(() => {
-  if (!props.modelValue) return null
-  
+  const mv = props.modelValue
+  if (mv === null || mv === undefined || mv === '') return null
+
   // 先在一级分类中查找
-  const parentOption = props.options.find(opt => 
-    getOptionValue(opt) === props.modelValue
-  )
+  const parentOption = props.options.find(opt => getOptionValue(opt) === mv)
   if (parentOption) {
     return getOptionLabel(parentOption)
   }
@@ -227,9 +255,7 @@ const displayText = computed(() => {
   if (props.supportSubmenu) {
     for (const option of props.options) {
       if (hasChildren(option)) {
-        const child = getChildren(option).find((child: any) =>
-          getChildValue(child) === props.modelValue
-        )
+        const child = getChildren(option).find((child: any) => getChildValue(child) === mv)
         if (child) {
           return getChildLabel(child)
         }
@@ -383,7 +409,7 @@ onUnmounted(() => {
   justify-content: space-between;
   padding: 0 $spacing-sm;
   height: $size-control-height-sm;
-  border-radius: $radius-xs;
+  border-radius: var(--dd-radius-toggle);
   box-sizing: border-box;
 }
 
@@ -423,7 +449,7 @@ onUnmounted(() => {
   right: 0;
   margin-top: $spacing-xs;
   background: $bg-primary;
-  border-radius: $radius-xs;
+  border-radius: var(--dd-radius);
   box-shadow: $shadow-dropdown-panel;
   z-index: $z-dropdown-panel;
   overflow: hidden;
@@ -445,7 +471,7 @@ onUnmounted(() => {
 
 .parent-item.selected {
   background-color: rgba($info, $alpha-15);
-  border-radius: $radius-sm;
+  border-radius: var(--dd-radius-selected);
 }
 
 /* 展开图标样式 */
@@ -458,7 +484,7 @@ onUnmounted(() => {
   height: $size-icon-cell;
   margin-left: $spacing-sm;
   margin-right: $spacing-xs;
-  border-radius: $radius-xs;
+  border-radius: var(--dd-radius);
 }
 
 .expand-placeholder {
@@ -503,7 +529,7 @@ onUnmounted(() => {
 
 .child-item.selected {
   background-color: rgba($info, $alpha-15);
-  border-radius: $radius-sm;
+  border-radius: var(--dd-radius-selected);
 }
 
 /* 二级分类缩进占位 */
@@ -541,13 +567,20 @@ onUnmounted(() => {
 
 /* 资产工具栏变体：写在子组件内，小程序端父级 scoped :deep 无法穿透自定义组件 */
 .dropdown-container--toolbar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+
   .dropdown-toggle {
+    flex: 1 1 auto;
+    min-height: $spacing-base * 2;
     background: $bg-primary !important;
-    border-radius: $radius-sm !important;
+    border-radius: var(--dd-radius-toggle) !important;
     /* 12rpx ≈ $spacing-sm - $spacing-xs/2，24rpx = $spacing-md */
     padding: calc(#{$spacing-sm} - #{$spacing-xs} / 2) $spacing-md !important;
     color: $text-primary !important;
-    height: $spacing-base * 2;
+    height: auto !important;
     box-sizing: border-box;
     border: none !important;
 
@@ -558,12 +591,12 @@ onUnmounted(() => {
   }
 
   .dropdown-menu {
-    border-radius: $radius-xs !important;
+    border-radius: var(--dd-radius) !important;
     overflow: hidden;
   }
 
   .dropdown-item.selected {
-    border-radius: $radius-xs !important;
+    border-radius: var(--dd-radius) !important;
     min-height: $font-md + $spacing-xs !important;
     color: $primary !important;
     background-color: rgba($primary, $alpha-10) !important;

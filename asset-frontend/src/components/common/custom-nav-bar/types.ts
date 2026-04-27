@@ -1,5 +1,7 @@
-/** 当前无对外 props（头像等资源在组件内 import） */
-export type CustomNavBarProps = Record<string, never>
+/** 右侧头像展示地址；为空串时组件内回退为默认占位图 */
+export type CustomNavBarProps = {
+  avatarSrc?: string
+}
 
 export type CustomNavBarEmits = {
   /** 点击左侧菜单区域 */

@@ -2,6 +2,7 @@ import { computed, ref, watch } from 'vue'
 import { getUserInfo, loginByPhoneCode, sendLoginCode, updateUserInfo } from '@/api'
 import { AUTH_ERROR_CODE } from '@/constants/auth-error-codes'
 import { normalizeRequestErrorMessage } from '@/services/functions/auth-function'
+import { isRemoteAvatarUrl, uploadAvatarFile } from '@/utils/upload-avatar'
 import { clearToken, isLoggedIn, setToken } from '@/utils/auth'
 import type { FormMode } from './types'
 
@@ -295,12 +296,23 @@ export function useLogin() {
         sessionFromPage.value = true
       }
 
+      let avatarUrl = (registerAvatar.value || '').trim()
+      if (avatarUrl && !isRemoteAvatarUrl(avatarUrl)) {
+        try {
+          avatarUrl = (await uploadAvatarFile(avatarUrl)).key
+        } catch (uploadErr) {
+          formError.value = '头像上传失败，请重试'
+          console.error(uploadErr)
+          return
+        }
+      }
+
       await updateUserInfo(
         {
           nickname: registerNickname.value.trim(),
-          avatar: registerAvatar.value || ''
+          avatar: avatarUrl,
         },
-        { showErrorToast: false }
+        { showErrorToast: false },
       )
       uni.reLaunch({ url: '/pages/asset/list/asset-list-page' })
     } catch (error) {
